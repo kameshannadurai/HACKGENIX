@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SyncField — Field Officer Dashboard</title>
+  <meta name="description" content="SyncField Field Officer Mobile Console. Offline-first inspection with SHA-256 evidence continuity.">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .officer-hero-card {
+      background: linear-gradient(135deg, #0d234a, #1e3a8a);
+      color: #ffffff;
+      border-radius: var(--radius-md);
+      padding: 24px;
+      margin-bottom: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    }
+    .hero-stat-row {
+      display: flex;
+      gap: 16px;
+      margin: 18px 0;
+    }
+    .hero-stat-box {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 10px;
+      padding: 12px 20px;
+      min-width: 110px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .hero-stat-box:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+    }
+    .hero-stat-num {
+      font-size: 26px;
+      font-weight: 900;
+      color: #38bdf8;
+    }
+    .hero-stat-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #cbd5e1;
+    }
+    .active-job-box {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 12px;
+      padding: 18px;
+      margin-top: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ==========================================================================
+       TOP NAVBAR
+       ========================================================================== -->
+  <header class="top-navbar">
+    <div class="navbar-left">
+      <div class="brand-wrapper" onclick="app.navigateTo('dashboard')">
+        <div class="cloud-icon-logo">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M7 16.5A4.5 4.5 0 0 1 6.5 7.5a6 6 0 0 1 11.2 -1.4A4.5 4.5 0 0 1 17.5 16.5H7z" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M9 13.5c.8-1.5 2-2.5 3.5-2.5s2.7 1 3.5 2.5" stroke="#ffffff" stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </div>
+        <div class="brand-text-block">
+          <div class="brand-title-row">
+            <span class="brand-title">SYNCFIELD</span>
+            <span class="continuity-badge">FIELD OFFICER</span>
+          </div>
+          <span class="brand-subtitle">Connectivity should never stop field work.</span>
+        </div>
+      </div>
+
+      <!-- Offline / Online Toggle -->
+      <div class="status-pill-toggle" id="connectivityStatusToggle" onclick="app.toggleConnectivityMode()" title="Toggle Offline / Online Simulation">
+        <span class="dot" id="statusDotIndicator"></span>
+        <span id="statusTextIndicator">Offline</span>
+        <span style="font-size: 10px; margin-left: 1px; color: #94a3b8;">⌄</span>
+      </div>
+    </div>
+
+    <div class="navbar-right">
+      <button class="btn-start-inspection" style="padding: 6px 12px; font-size: 11px; background: linear-gradient(135deg, #2563eb, #7c3aed); border: none;" onclick="judgeDemo.autoPlay()" title="3-Minute Auto Demonstration">
+        ⚡ 3-Min Demo
+      </button>
+
+      <button class="dark-mode-toggle-btn" id="darkModeToggleBtn" onclick="app.toggleDarkMode()" title="Toggle Dark / Light Mode">
+        <span id="darkModeIcon">🌙</span>
+        <span id="darkModeText">Dark</span>
+      </button>
+
+      <!-- User Avatar with Logout -->
+      <div class="user-avatar-pill" style="cursor:default;">
+        <div class="user-avatar-circle" style="background:#38bdf8; color:#0d234a;">AK</div>
+        <span class="user-name-text">
+          <span>Arun Kumar</span>
+          <span class="badge badge-verified" style="font-size:10px; margin-left:4px;">OFFICER</span>
+        </span>
+      </div>
+
+      <button class="btn-view-details" style="padding:6px 12px; font-size:11px; border-color:rgba(255,255,255,0.2); color:#cbd5e1;" onclick="window.authEngine.logout()" title="Sign Out">
+        Sign Out ⎋
+      </button>
+    </div>
+  </header>
+
+  <!-- OFFLINE ALERT BANNER -->
+  <div class="offline-banner-wrap" id="offlineBannerWrapper">
+    <div class="offline-alert-box" id="offlineAlertBox">
+      <div class="offline-alert-content">
+        <div class="alert-circle-icon">!</div>
+        <div class="alert-text">
+          <strong>OFFLINE CONTINUITY ACTIVE</strong> — All records & multimedia packages saved locally in encrypted on-device IndexedDB vault.
+        </div>
+      </div>
+      <div class="banner-right-actions">
+        <span class="storage-free-badge">Storage Free: 1.88 GB</span>
+        <button class="btn-banner-action" onclick="app.navigateTo('local-vault')">Open Local Vault</button>
+        <button class="btn-banner-action btn-banner-primary" onclick="app.navigateTo('sync-center')">View Sync Queue</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- APP LAYOUT -->
+  <div class="app-layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div>
+        <div class="sidebar-heading">FIELD OFFICER TOOLS</div>
+        <ul class="sidebar-menu">
+          <li>
+            <button class="menu-item-btn active" data-view="dashboard" onclick="app.navigateTo('dashboard')">
+              <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+              <span>Dashboard</span>
+            </button>
+          </li>
+          <li>
+            <button class="menu-item-btn" data-view="job-details" onclick="app.navigateTo('job-details')">
+              <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <span>My Jobs</span>
+              <span class="count-pill">4</span>
+            </button>
+          </li>
+          <li>
+            <button class="menu-item-btn" data-view="inspection-form" onclick="app.navigateTo('inspection-form')">
+              <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              <span>New Inspection</span>
+            </button>
+          </li>
+          <li>
+            <button class="menu-item-btn" data-view="evidence-capture" onclick="app.navigateTo('evidence-capture')">
+              <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              <span>Evidence Capture</span>
+            </button>
+          </li>
+          <li>
+            <button class="menu-item-btn" data-view="evidence-package" onclick="app.navigateTo('evidence-package')">
+              <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              <span>Evidence Package</span>
+            </button>
+          </li>
+          <li>
+            <button class="menu-item-btn" data-view="local-vault" onclick="app.navigateTo('local-vault')">
+              <svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M10 4v4"/><path d="M2 8h20"/><circle cx="12" cy="14" r="2"/></svg>
+              <span>Local Vault</span>
+              <span class="count-pill">4</span>
+            </button>
+          </li>
+          <li>
+            <button class="menu-item-btn" data-view="sync-center" onclick="app.navigateTo('sync-center')">
+              <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+              <span>Sync Center</span>
+              <span class="count-pill">2</span>
+            </button>
+          </li>
+          <li>
+            <button class="menu-item-btn" data-view="resumable-upload" onclick="app.navigateTo('resumable-upload')">
+              <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <span>Resumable Upload</span>
+            </button>
+          </li>
+          <li>
+            <button class="menu-item-btn" data-view="profile" onclick="app.navigateTo('profile')">
+              <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              <span>Officer Profile</span>
+            </button>
+          </li>
+        </ul>
+      </div>
+
+      <div style="font-size: 11px; color: var(--text-light); text-align: center; padding-top: 10px; border-top: 1px solid var(--border-color);">
+        Panasonic Toughbook G2 • Local Node Active
+      </div>
+    </aside>
+
+    <!-- MAIN VIEW -->
+    <main class="main-view-container">
+
+      <!-- VIEW 1: DASHBOARD -->
+      <section id="view-dashboard" class="app-screen active">
+
+        <!-- Officer Hero Card (Matching exact user spec) -->
+        <div class="officer-hero-card">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div>
+              <h1 style="font-size:24px; font-weight:800; margin-bottom:4px;">Good Morning, Field Officer 👋</h1>
+              <div style="font-size:13px; color:#cbd5e1;">4 inspection jobs assigned for today in Mojave Desert Sector 7.</div>
+            </div>
+            <div class="badge" style="background:rgba(56,189,248,0.2); color:#38bdf8; border:1px solid #38bdf8;">
+              CLEARANCE LEVEL 3
+            </div>
+          </div>
+
+          <div class="hero-stat-row">
+            <div class="hero-stat-box" onclick="app.navigateTo('job-details')">
+              <div class="hero-stat-num">04</div>
+              <div class="hero-stat-label">Jobs</div>
+            </div>
+            <div class="hero-stat-box" onclick="app.navigateTo('sync-center')">
+              <div class="hero-stat-num" style="color:#f59e0b;">02</div>
+              <div class="hero-stat-label">Pending Sync</div>
+            </div>
+            <div class="hero-stat-box" onclick="app.showToast('1 conflict noted on Panel #47 awaiting Supervisor HQ review', 'info')">
+              <div class="hero-stat-num" style="color:#ef4444;">01</div>
+              <div class="hero-stat-label">Conflict</div>
+            </div>
+            <div class="hero-stat-box" onclick="app.navigateTo('local-vault')">
+              <div class="hero-stat-num" style="color:#10b981;">18</div>
+              <div class="hero-stat-label">Synced</div>
+            </div>
+          </div>
+
+          <!-- ACTIVE JOB CARD -->
+          <div class="active-job-box">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <span style="font-size:11px; font-weight:800; color:#38bdf8; letter-spacing:0.8px;">⚡ ACTIVE JOB</span>
+              <span class="high-priority-badge">HIGH PRIORITY • DUE 11:30 AM</span>
+            </div>
+            <div style="font-size:18px; font-weight:800; margin-bottom:2px;">Solar Panel Inverter Diagnostic</div>
+            <div style="font-size:13px; color:#94a3b8; margin-bottom:14px;">Asset: <strong>Panel #47 (Inverter Cluster 3)</strong> • Remote Solar Site</div>
+
+            <div style="display:flex; gap:10px; margin-bottom:14px;">
+              <button class="btn-start-inspection" style="padding:8px 18px; font-size:13px;" onclick="app.navigateTo('job-details')">
+                Open Job Specification →
+              </button>
+              <button class="btn-view-details" style="padding:8px 18px; font-size:13px; background:rgba(255,255,255,0.1); color:#fff; border-color:rgba(255,255,255,0.2);" onclick="app.navigateTo('evidence-capture')">
+                📷 Capture Evidence
+              </button>
+            </div>
+
+            <!-- SYNC STATUS -->
+            <div style="border-top:1px solid rgba(255,255,255,0.1); padding-top:12px;">
+              <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:6px;">
+                <span>SYNC STATUS: <strong>Resuming upload from verified checkpoint...</strong></span>
+                <strong style="color:#38bdf8;">82%</strong>
+              </div>
+              <div style="height:8px; background:rgba(255,255,255,0.15); border-radius:9999px; overflow:hidden;">
+                <div style="height:100%; width:82%; background:linear-gradient(90deg, #10b981, #38bdf8);"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dispatched Sector Map & Telemetry Grid -->
+        <div class="job-and-location-grid">
+          <div class="inner-card">
+            <h3 style="font-size:16px; margin-bottom:12px;">📍 Calibrated GPS Telemetry</h3>
+            <div id="map" style="height: 200px; width: 100%; border-radius: 8px; border: 1px solid var(--border-color); overflow: hidden; margin-bottom:12px;"></div>
+            <div style="font-size:12px; color:var(--text-muted); display:flex; justify-content:space-between;">
+              <span>LAT: 13.1143° N | LON: 80.1548° E</span>
+              <span>Accuracy: ±3.8m</span>
+            </div>
+          </div>
+
+          <div class="inner-card">
+            <h3 style="font-size:16px; margin-bottom:12px;">📦 On-Device Local Vault Status</h3>
+            <div style="font-size:13px; margin-bottom:8px;">Local Storage Allocated: <strong>1.88 GB Free</strong> / 2.0 GB</div>
+            <div style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">Evidence packages are stored in IndexedDB (<code>SyncField_Vault_v2</code>) with SHA-256 integrity seal.</div>
+            <button class="btn-start-inspection" style="width:100%;" onclick="app.navigateTo('inspection-form')">
+              Start New Inspection Form →
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 2: JOB DETAILS -->
+      <section id="view-job-details" class="app-screen">
+        <div class="screen-back-row">
+          <button class="btn-back-link" onclick="app.navigateTo('dashboard')">← Back to Dashboard</button>
+          <span style="color:#94a3b8;">/</span>
+          <span style="font-size:13px; font-weight:700;">OP-2026-0047 Specification</span>
+        </div>
+        <div class="inner-card">
+          <div style="display:flex; justify-content:space-between; margin-bottom:16px;">
+            <div>
+              <span class="high-priority-badge" style="margin-bottom:6px; display:inline-block;">HIGH PRIORITY</span>
+              <h2 style="font-size:22px;">Solar Panel Inverter Diagnostic</h2>
+              <div style="font-size:13px; color:var(--text-muted);">Operation: OP-2026-0047 • Asset: Panel #47</div>
+            </div>
+            <button class="btn-start-inspection" onclick="app.navigateTo('inspection-form')">Start Inspection →</button>
+          </div>
+          <div class="form-grid-2" style="font-size:13.5px; margin-bottom:20px;">
+            <div>Assigned Officer: <strong>Arun Kumar (Worker-04)</strong></div>
+            <div>Due Window: <strong>11:30 AM Today (Air-Gapped)</strong></div>
+            <div>Location: <strong>Mojave Solar Array Sector 7</strong></div>
+            <div>Integrity Protocol: <strong>SHA-256 Merkle Evidence Package</strong></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 3: INSPECTION FORM -->
+      <section id="view-inspection-form" class="app-screen">
+        <div class="screen-back-row">
+          <button class="btn-back-link" onclick="app.navigateTo('dashboard')">← Dashboard</button>
+          <span style="color:#94a3b8;">/</span>
+          <span style="font-size:13px; font-weight:700;">Field Inspection Form</span>
+        </div>
+        <div class="inner-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+            <div>
+              <h2 style="font-size:22px;">Field Inspection Form</h2>
+              <div style="font-size:13px; color:var(--text-muted);">OP-2026-0047 • Panel #47 (Inverter Cluster 3)</div>
+            </div>
+            <div style="display:flex; gap:10px;">
+              <button class="btn-view-details" onclick="app.clearForm()">Clear</button>
+              <button class="btn-start-inspection" onclick="app.saveInspection(false)">Save to Local Vault</button>
+              <button class="btn-start-inspection" style="background:#16a34a;" onclick="app.saveInspection(true)">Save & Package →</button>
+            </div>
+          </div>
+          <form id="inspectionEntryForm">
+            <div class="form-grid-2">
+              <div class="form-field">
+                <label class="form-label">Field Officer</label>
+                <input type="text" id="officerField" class="form-input" value="Arun Kumar (Worker-04)" required>
+              </div>
+              <div class="form-field">
+                <label class="form-label">Operation ID</label>
+                <input type="text" id="opIdField" class="form-input" value="OP-2026-0047" readonly>
+              </div>
+              <div class="form-field">
+                <label class="form-label">Asset</label>
+                <input type="text" id="assetField" class="form-input" value="Panel #47" required>
+              </div>
+              <div class="form-field">
+                <label class="form-label">Temperature (°C)</label>
+                <input type="number" id="tempField" class="form-input" value="72" required>
+              </div>
+              <div class="form-field full">
+                <label class="form-label">Field Remarks</label>
+                <textarea id="remarksField" class="form-textarea">10:42 AM - Inverter thermal overload. Micro-fracture detected on cell cluster 3. High heat localized on diode enclosure.</textarea>
+              </div>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- VIEW 4: EVIDENCE CAPTURE -->
+      <section id="view-evidence-capture" class="app-screen">
+        <div class="screen-back-row">
+          <button class="btn-back-link" onclick="app.navigateTo('dashboard')">← Dashboard</button>
+          <span style="color:#94a3b8;">/</span>
+          <span style="font-size:13px; font-weight:700;">Evidence Capture Workbench</span>
+        </div>
+        <div class="inner-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+            <h2 style="font-size:22px;">Evidence Capture Gallery</h2>
+            <button class="btn-start-inspection" onclick="app.createEvidencePackage()">Create Evidence Package →</button>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:16px;" id="galleryCardsGrid"></div>
+        </div>
+      </section>
+
+      <!-- VIEW 5: EVIDENCE PACKAGE -->
+      <section id="view-evidence-package" class="app-screen">
+        <div class="screen-back-row">
+          <button class="btn-back-link" onclick="app.navigateTo('dashboard')">← Dashboard</button>
+          <span style="color:#94a3b8;">/</span>
+          <span style="font-size:13px; font-weight:700;">Evidence Package Container</span>
+        </div>
+        <div class="inner-card" style="border: 2px solid var(--primary-blue);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <div>
+              <span class="badge badge-queued">STORED OFFLINE</span>
+              <h2 style="font-size:22px; margin-top:4px;">Evidence Package: OP-2026-0047</h2>
+            </div>
+            <button class="btn-start-inspection" onclick="app.addToSyncQueue()">Add to Sync Queue →</button>
+          </div>
+          <div style="background:#0d234a; color:#ffffff; padding:14px; border-radius:var(--radius-md); font-family:var(--font-mono); font-size:12px;">
+            <div style="color:#38bdf8; font-weight:700;">INTEGRITY FINGERPRINT (SHA-256):</div>
+            <div style="color:#a5f3fc; word-break:break-all;">a7f3e829d0b5413ac99120489b21f37e408c0281b9e248a7f3b892b1</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 6: LOCAL VAULT -->
+      <section id="view-local-vault" class="app-screen">
+        <div class="screen-back-row">
+          <button class="btn-back-link" onclick="app.navigateTo('dashboard')">← Dashboard</button>
+          <span style="color:#94a3b8;">/</span>
+          <span style="font-size:13px; font-weight:700;">Secure Local Evidence Vault</span>
+        </div>
+        <div class="inner-card">
+          <h2 style="font-size:22px; margin-bottom:16px;">Local Evidence Vault (IndexedDB)</h2>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Operation ID</th>
+                  <th>Job Type</th>
+                  <th>Worker</th>
+                  <th>Enclosed Evidence</th>
+                  <th>Vault Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="localVaultTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 7: SYNC CENTER -->
+      <section id="view-sync-center" class="app-screen">
+        <div class="screen-back-row">
+          <button class="btn-back-link" onclick="app.navigateTo('dashboard')">← Dashboard</button>
+          <span style="color:#94a3b8;">/</span>
+          <span style="font-size:13px; font-weight:700;">Smart Sync Center</span>
+        </div>
+        <div class="inner-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <h2 style="font-size:22px;">Smart Sync Center</h2>
+            <button class="btn-start-inspection" onclick="app.syncNow()">Sync Now ⚡</button>
+          </div>
+          <div id="syncCenterQueueList" style="display:flex; flex-direction:column; gap:10px;"></div>
+        </div>
+      </section>
+
+      <!-- VIEW 8: RESUMABLE UPLOAD -->
+      <section id="view-resumable-upload" class="app-screen">
+        <div class="screen-back-row">
+          <button class="btn-back-link" onclick="app.navigateTo('dashboard')">← Dashboard</button>
+          <span style="color:#94a3b8;">/</span>
+          <span style="font-size:13px; font-weight:700;">Resumable Upload Engine</span>
+        </div>
+        <div class="inner-card" style="background:#0d234a; color:#fff;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+            <div>
+              <span class="badge" style="background:#2563eb; color:#fff;" id="uploadStatusBadge">UPLOADING</span>
+              <h3 style="font-size:18px; margin:4px 0;">OP-2026-0047 / inspection-video.mp4</h3>
+              <div style="font-size:12px; color:#94a3b8;">File Size: 18.4 MB (10 Checkpoint Chunks)</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:28px; font-weight:900; color:#38bdf8;" id="uploadPercentVal">72%</div>
+              <div style="font-size:12px; color:#cbd5e1;" id="uploadBytesVal">13.2 MB / 18.4 MB</div>
+            </div>
+          </div>
+          <div style="height:10px; background:rgba(255,255,255,0.15); border-radius:9999px; overflow:hidden; margin-bottom:16px;">
+            <div id="uploadProgressFillBar" style="height:100%; width:72%; background:linear-gradient(90deg, #10b981, #38bdf8);"></div>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(10, 1fr); gap:6px; margin-bottom:18px;" id="uploadChunksGrid"></div>
+          <div style="display:flex; gap:10px;">
+            <button class="btn-view-details" style="background:#dc2626; color:#fff; border-color:#dc2626;" onclick="app.simulateUploadInterrupt()">Simulate Network Drop</button>
+            <button class="btn-start-inspection" style="background:#16a34a;" onclick="app.resumeUpload()">Resume Checkpoint</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 9: PROFILE -->
+      <section id="view-profile" class="app-screen">
+        <div class="screen-back-row">
+          <button class="btn-back-link" onclick="app.navigateTo('dashboard')">← Dashboard</button>
+          <span style="color:#94a3b8;">/</span>
+          <span style="font-size:13px; font-weight:700;">Personnel Profile</span>
+        </div>
+        <div class="inner-card" style="max-width:600px;">
+          <h2 style="font-size:20px; margin-bottom:12px;">Arun Kumar (Worker-04)</h2>
+          <div style="font-size:13px; color:var(--text-muted); margin-bottom:18px;">Field Officer • Panasonic Toughbook G2</div>
+          <button class="btn-view-details" style="background:#dc2626; color:#fff; border-color:#dc2626;" onclick="window.authEngine.logout()">
+            Sign Out of Terminal
+          </button>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <div class="toast-box" id="appToastBox"><span id="toastMessageText">Action successful</span></div>
+
+  <!-- Scripts -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="js/auth.js"></script>
+  <script src="js/crypto.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/mock-server.js"></script>
+  <script src="js/sync-engine.js"></script>
+  <script src="js/demo-controller.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.authEngine) {
+        window.authEngine.requireRole(['FIELD_WORKER', 'FIELD_OFFICER', 'ADMIN']);
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SyncField — Field Operations & Evidence Continuity</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    body {
+      background: #0d234a;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-family: 'Inter', sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <div style="text-align:center;">
+    <div style="font-size:36px; margin-bottom:12px;">⚡</div>
+    <h2 style="font-size:22px; font-weight:800; letter-spacing:1px;">SYNCFIELD CONTINUITY</h2>
+    <div style="font-size:13px; color:#94a3b8; margin-top:6px;">Connecting to Secure Role-Based Portal...</div>
+  </div>
+
+  <script src="js/auth.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.authEngine && window.authEngine.isLoggedIn()) {
+        window.authEngine.redirectToDashboard();
+      } else {
+        window.location.href = 'login.html';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SyncField — Secure Access Portal</title>
+  <meta name="description" content="SyncField: Enterprise offline-first field inspection platform with Role-Based Access Control (RBAC).">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+
+  <style>
+    body {
+      background: radial-gradient(circle at top right, #1e293b, #0f172a 60%, #020617);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #f8fafc;
+      padding: 20px;
+    }
+
+    .login-container {
+      width: 100%;
+      max-width: 460px;
+      background: rgba(13, 35, 74, 0.85);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      padding: 36px 32px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    }
+
+    .login-brand {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .login-logo {
+      width: 52px;
+      height: 52px;
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #38bdf8;
+      margin-bottom: 12px;
+    }
+
+    .login-title {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .login-subtitle {
+      font-size: 13px;
+      color: #94a3b8;
+      margin-top: 4px;
+    }
+
+    .quick-roles-title {
+      font-size: 11.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #38bdf8;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .role-quick-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+
+    .role-quick-btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 10px;
+      padding: 10px 6px;
+      color: #e2e8f0;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s ease;
+    }
+
+    .role-quick-btn:hover {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: #38bdf8;
+      color: #ffffff;
+      transform: translateY(-2px);
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #cbd5e1;
+      margin-bottom: 6px;
+    }
+
+    .login-input {
+      width: 100%;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 8px;
+      padding: 12px 14px;
+      color: #ffffff;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .login-input:focus {
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+    }
+
+    .btn-login-submit {
+      width: 100%;
+      background: linear-gradient(135deg, #1d70e8, #0284c7);
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      padding: 13px;
+      font-size: 14.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s;
+      box-shadow: 0 4px 14px rgba(29, 112, 232, 0.4);
+    }
+
+    .btn-login-submit:hover {
+      background: linear-gradient(135deg, #155bc2, #0369a1);
+      transform: translateY(-1px);
+    }
+
+    .login-footer-badge {
+      text-align: center;
+      margin-top: 22px;
+      font-size: 11.5px;
+      color: #64748b;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="login-container">
+    <div class="login-brand">
+      <div class="login-logo">
+        <svg viewBox="0 0 24 24" fill="none" style="width:28px;height:28px;">
+          <path d="M7 16.5A4.5 4.5 0 0 1 6.5 7.5a6 6 0 0 1 11.2 -1.4A4.5 4.5 0 0 1 17.5 16.5H7z" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M9 13.5c.8-1.5 2-2.5 3.5-2.5s2.7 1 3.5 2.5" stroke="#ffffff" stroke-width="2" stroke-linecap="round" />
+        </svg>
+      </div>
+      <div class="login-title">
+        <span>SYNCFIELD</span>
+        <span class="continuity-badge">CONTINUITY</span>
+      </div>
+      <div class="login-subtitle">Role-Based Access Control • Spring Boot JWT Authenticated</div>
+    </div>
+
+    <!-- Quick Role Selector for Demo -->
+    <div class="quick-roles-title">⚡ 1-Click Demo Accounts</div>
+    <div class="role-quick-grid">
+      <button type="button" class="role-quick-btn" onclick="fillCredentials('officer')">
+        <span style="font-size:18px;">👷</span>
+        <span>Field Officer</span>
+      </button>
+      <button type="button" class="role-quick-btn" onclick="fillCredentials('supervisor')">
+        <span style="font-size:18px;">👨💻</span>
+        <span>Supervisor</span>
+      </button>
+      <button type="button" class="role-quick-btn" onclick="fillCredentials('admin')">
+        <span style="font-size:18px;">👨💼</span>
+        <span>Admin</span>
+      </button>
+    </div>
+
+    <!-- Login Form -->
+    <form id="loginForm" onsubmit="handleLoginSubmit(event)">
+      <div class="form-group">
+        <label for="emailInput">Demo Email</label>
+        <input type="email" id="emailInput" class="login-input" value="field@syncfield.demo" required autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label for="passwordInput">Password</label>
+        <input type="password" id="passwordInput" class="login-input" value="Field@123" required autocomplete="current-password">
+      </div>
+
+      <button type="submit" class="btn-login-submit" id="btnSubmitLogin">
+        <span>Sign In to Dashboard</span>
+        <span>→</span>
+      </button>
+    </form>
+
+    <div class="login-footer-badge">
+      🔒 SHA-256 Merkle Verification • Offline IndexedDB Vault • Zero Data Loss
+    </div>
+  </div>
+
+  <div class="toast-box" id="appToastBox">
+    <span id="toastMessageText">Action successful</span>
+  </div>
+
+  <script src="js/auth.js"></script>
+  <script>
+    // Quick Credential Fill
+    function fillCredentials(roleKey) {
+      const demo = DEMO_CREDENTIALS[roleKey];
+      if (!demo) return;
+      document.getElementById('emailInput').value = demo.email;
+      document.getElementById('passwordInput').value = demo.password;
+      showToast(`Filled ${demo.role} credentials (${demo.email})`, 'info');
+    }
+
+    async function handleLoginSubmit(e) {
+      e.preventDefault();
+      const email = document.getElementById('emailInput').value.trim();
+      const password = document.getElementById('passwordInput').value.trim();
+      const btn = document.getElementById('btnSubmitLogin');
+
+      btn.disabled = true;
+      btn.innerHTML = '<span>Authenticating with Spring Boot...</span>';
+
+      try {
+        const result = await window.authEngine.login(email, password);
+        showToast(`✅ Welcome back, ${result.user.name}! Redirecting...`, 'success');
+        setTimeout(() => {
+          window.authEngine.redirectToDashboard();
+        }, 600);
+      } catch (err) {
+        showToast(`⛔ ${err.message}`, 'warning');
+        btn.disabled = false;
+        btn.innerHTML = '<span>Sign In to Dashboard</span><span>→</span>';
+      }
+    }
+
+    function showToast(message, type = 'info') {
+      const toast = document.getElementById('appToastBox');
+      const text = document.getElementById('toastMessageText');
+      if (!toast || !text) return;
+      text.textContent = message;
+      toast.style.display = 'flex';
+      toast.style.background = type === 'success' ? '#16a34a' : type === 'warning' ? '#dc2626' : '#0d234a';
+      clearTimeout(window._toastTimeout);
+      window._toastTimeout = setTimeout(() => { toast.style.display = 'none'; }, 3500);
+    }
+
+    // If already logged in, redirect directly
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.authEngine && window.authEngine.isLoggedIn()) {
+        window.authEngine.redirectToDashboard();
+      }
+    });
+  </script>
+</body>
+</html>

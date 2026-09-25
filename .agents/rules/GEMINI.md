@@ -1,3 +1,7 @@
+---
+trigger: always_on
+---
+
 # Project Rules & Team Conventions
 
 ## Tech Stack

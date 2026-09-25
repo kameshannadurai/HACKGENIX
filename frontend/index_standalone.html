@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>SyncField — Offline-First Field Operations Platform</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1', 900: '#0c4a6e' },
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Dexie.js (IndexedDB) -->
+  <script src="https://unpkg.com/dexie@3.2.4/dist/dexie.js"></script>
+  <!-- React & ReactDOM -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <!-- Babel Standalone -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glass-card {
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-thumb { background: rgba(51, 65, 85, 0.8); border-radius: 9999px; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 antialiased min-h-screen selection:bg-sky-500 selection:text-white">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // --- DEXIE INDEXEDDB SETUP ---
+    const db = new Dexie('SyncField_Standalone_DB');
+    db.version(1).stores({
+      jobs: 'id, jobCode, assignedWorkerId, status, priority',
+      operations: 'id, operationId, jobId, workerId, idempotencyKey, status, version',
+      evidencePackages: 'id, packageId, operationId, status',
+      evidenceFiles: 'id, fileId, packageId, fileType, uploadStatus',
+      syncQueue: 'id, operationId, status, enqueuedAt',
+      conflicts: 'id, operationId, status, createdAt',
+      auditLogs: 'id, operationId, action, timestamp'
+    });
+
+    // Seed Demo Data
+    async function initDatabase() {
+      const count = await db.jobs.count();
+      if (count === 0) {
+        await db.jobs.bulkAdd([
+          {
+            id: 'job-solar-047',
+            jobCode: 'JOB-SOLAR-047',
+            title: 'Solar Panel Inspection',
+            description: 'Thermal sweep, photodiode degradation check, and mount inspection on Sector 4.',
+            assetName: 'Panel #47',
+            assignedWorkerName: 'Worker-01 (Alex Rivera)',
+            status: 'ASSIGNED',
+            priority: 'HIGH'
+          },
+          {
+            id: 'job-tower-102',
+            jobCode: 'JOB-TOWER-102',
+            title: 'Electrical Tower Inspection',
+            description: 'High-voltage insulator sweep and line tension evaluation.',
+            assetName: 'Tower North-12',
+            assignedWorkerName: 'Worker-01 (Alex Rivera)',
+            status: 'ASSIGNED',
+            priority: 'CRITICAL'
+          },
+          {
+            id: 'job-hvac-305',
+            jobCode: 'JOB-HVAC-305',
+            title: 'HVAC Maintenance',
+            description: 'Quarterly compressor valve inspection and filter replacement.',
+            assetName: 'Chiller Unit 4B',
+            assignedWorkerName: 'Worker-02 (Sarah Chen)',
+            status: 'IN_PROGRESS',
+            priority: 'MEDIUM'
+          }
+        ]);
+
+        await db.auditLogs.add({
+          id: `audit-${Date.now()}`,
+          action: 'VAULT_INITIALIZED',
+          description: 'Local Dexie Evidence Vault initialized with offline field assets',
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
+
+    // SHA-256 Crypto helper
+    async function sha256(text) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(text);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    // --- MAIN REACT APPLICATION ---
+    function App() {
+      const [activeTab, setActiveTab] = useState('WORKER'); // WORKER, JOB_EXEC, SYNC, SUPERVISOR, CONFLICTS, AUDIT
+      const [selectedJob, setSelectedJob] = useState(null);
+      const [jobs, setJobs] = useState([]);
+      const [operations, setOperations] = useState([]);
+      const [queueItems, setQueueItems] = useState([]);
+      const [conflicts, setConflicts] = useState([]);
+      const [auditLogs, setAuditLogs] = useState([]);
+
+      // Network Simulation State
+      const [isSimulatedOffline, setIsSimulatedOffline] = useState(false);
+      const [isSimulatedInterrupted, setIsSimulatedInterrupted] = useState(false);
+      const [activeRole, setActiveRole] = useState('FIELD_WORKER');
+
+      // Live In-Flight Progress
+      const [syncProgress, setSyncProgress] = useState(null);
+
+      // Job Inspection Form
+      const [tempReading, setTempReading] = useState(68.4);
+      const [voltageReading, setVoltageReading] = useState(37.2);
+      const [condition, setCondition] = useState('NEEDS_MAINTENANCE');
+      const [notes, setNotes] = useState('Thermal hot-spot detected on Cell 12. Micro-crack visible on photodiode sub-assembly.');
+      const [capturedFiles, setCapturedFiles] = useState([]);
+      const [savedAlert, setSavedAlert] = useState(false);
+
+      useEffect(() => {
+        initDatabase().then(refreshAllData);
+      }, []);
+
+      const refreshAllData = async () => {
+        setJobs(await db.jobs.toArray());
+        setOperations(await db.operations.toArray());
+        setQueueItems(await db.syncQueue.toArray());
+        setConflicts(await db.conflicts.toArray());
+        setAuditLogs(await db.auditLogs.reverse().toArray());
+      };
+
+      const startInspection = (job) => {
+        setSelectedJob(job);
+        setSavedAlert(false);
+        setActiveTab('JOB_EXEC');
+      };
+
+      // Media Capture Simulation
+      const captureMedia = async (type) => {
+        const fileId = `file-${Date.now()}`;
+        const ext = type === 'PHOTO' ? 'jpg' : type === 'VIDEO' ? 'webm' : 'webm';
+        const fileName = `${type.toLowerCase()}_${Date.now()}.${ext}`;
+        const fakeContent = `[RAW_BINARY_DATA_${type}_${Date.now()}]`;
+        const fileHash = await sha256(fakeContent);
+
+        const newFile = {
+          fileId,
+          fileName,
+          fileType: type,
+          fileSize: type === 'VIDEO' ? 18400000 : 2500000, // 18.4 MB or 2.5 MB
+          fileHash,
+          uploadStatus: 'CAPTURED',
+          uploadedBytes: 0,
+          totalBytes: type === 'VIDEO' ? 18400000 : 2500000,
+          checkpoint: 0
+        };
+
+        setCapturedFiles([...capturedFiles, newFile]);
+      };
+
+      // Save Evidence Package Offline
+      const handleSavePackage = async () => {
+        if (!selectedJob) return;
+        const opId = `OP-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+        const pkgId = `PKG-${opId}`;
+        const now = new Date().toISOString();
+        const idempKey = `idemp_${Date.now()}`;
+
+        const pkgHash = await sha256(JSON.stringify({ opId, files: capturedFiles.map(f => f.fileHash), notes }));
+
+        const op = {
+          id: `op-${Date.now()}`,
+          operationId: opId,
+          jobId: selectedJob.id,
+          jobTitle: selectedJob.title,
+          assetName: selectedJob.assetName,
+          workerName: 'Worker-01 (Alex Rivera)',
+          idempotencyKey: idempKey,
+          version: 1,
+          status: 'STORED_OFFLINE',
+          deviceId: 'DEVICE-FIELD-TAB-09',
+          latitude: 37.774929,
+          longitude: -122.419416,
+          inspectionData: { condition, temperatureCelsius: tempReading, voltageVDC: voltageReading, notes },
+          evidencePackage: {
+            packageId: pkgId,
+            packageHash: pkgHash,
+            status: 'STORED_OFFLINE',
+            files: capturedFiles
+          },
+          clientCreatedAt: now
+        };
+
+        await db.operations.put(op);
+        await db.syncQueue.put({
+          id: `queue-${Date.now()}`,
+          operationId: opId,
+          status: 'STORED_OFFLINE',
+          retryCount: 0,
+          lastCheckpoint: 0,
+          totalBytes: capturedFiles.reduce((a, f) => a + f.totalBytes, 1024 * 10),
+          uploadedBytes: 0,
+          enqueuedAt: now
+        });
+
+        await db.auditLogs.add({
+          id: `audit-${Date.now()}`,
+          operationId: op.id,
+          operationCode: opId,
+          action: 'EVIDENCE_PACKAGE_CREATED',
+          description: `Evidence Package ${pkgId} created with ${capturedFiles.length} media files & stored in offline vault`,
+          timestamp: now
+        });
+
+        setSavedAlert(true);
+        refreshAllData();
+      };
+
+      // Trigger Resumable Sync Engine
+      const triggerContinuitySync = async () => {
+        const queue = await db.syncQueue.toArray();
+        if (queue.length === 0) return;
+
+        for (const item of queue) {
+          const op = await db.operations.where('operationId').equals(item.operationId).first();
+          if (!op) continue;
+
+          // 1. UPLOADING
+          item.status = 'UPLOADING';
+          setSyncProgress({
+            operationId: op.operationId,
+            state: 'UPLOADING',
+            uploadedBytes: 4200000,
+            totalBytes: item.totalBytes || 18400000,
+            checkpoint: 1,
+            totalChunks: 4
+          });
+          await new Promise(r => setTimeout(r, 600));
+
+          // 2. Check Interruption Demo
+          if (isSimulatedInterrupted) {
+            item.status = 'PAUSED_RETRYING';
+            item.lastCheckpoint = 2;
+            item.uploadedBytes = 8200000;
+            await db.syncQueue.put(item);
+            setSyncProgress({
+              operationId: op.operationId,
+              state: 'PAUSED_RETRYING',
+              uploadedBytes: 8200000,
+              totalBytes: item.totalBytes || 18400000,
+              checkpoint: 2,
+              totalChunks: 4
+            });
+
+            await db.auditLogs.add({
+              id: `audit-${Date.now()}`,
+              operationId: op.id,
+              operationCode: op.operationId,
+              action: 'UPLOAD_PAUSED_AT_CHECKPOINT',
+              description: `Media upload paused at chunk 2/4 (8.2 MB saved) - Checkpoint persisted`,
+              timestamp: new Date().toISOString()
+            });
+            refreshAllData();
+            return;
+          }
+
+          // 3. Complete chunks -> RESUMING -> VERIFYING
+          setSyncProgress({
+            operationId: op.operationId,
+            state: 'RESUMING',
+            uploadedBytes: 14000000,
+            totalBytes: item.totalBytes || 18400000,
+            checkpoint: 3,
+            totalChunks: 4
+          });
+          await new Promise(r => setTimeout(r, 600));
+
+          setSyncProgress({
+            operationId: op.operationId,
+            state: 'VERIFYING',
+            uploadedBytes: item.totalBytes || 18400000,
+            totalBytes: item.totalBytes || 18400000,
+            checkpoint: 4,
+            totalChunks: 4
+          });
+          await new Promise(r => setTimeout(r, 600));
+
+          // 4. VERIFIED & SYNCED
+          op.status = 'SYNCED';
+          if (op.evidencePackage) op.evidencePackage.status = 'VERIFIED';
+          await db.operations.put(op);
+          await db.syncQueue.delete(item.id);
+
+          await db.auditLogs.add({
+            id: `audit-${Date.now()}`,
+            operationId: op.id,
+            operationCode: op.operationId,
+            action: 'MEDIA_INTEGRITY_VERIFIED',
+            description: `SHA-256 integrity hash verified for package ${op.evidencePackage?.packageId}`,
+            timestamp: new Date().toISOString()
+          });
+
+          await db.auditLogs.add({
+            id: `audit-${Date.now()}`,
+            operationId: op.id,
+            operationCode: op.operationId,
+            action: 'OPERATION_FULLY_SYNCED',
+            description: `Operation ${op.operationId} fully synchronized with verified continuity`,
+            timestamp: new Date().toISOString()
+          });
+
+          setSyncProgress({
+            operationId: op.operationId,
+            state: 'SYNCED',
+            uploadedBytes: item.totalBytes || 18400000,
+            totalBytes: item.totalBytes || 18400000,
+            checkpoint: 4,
+            totalChunks: 4
+          });
+        }
+        refreshAllData();
+      };
+
+      const injectConflict = async () => {
+        await db.conflicts.put({
+          id: `conflict-${Date.now()}`,
+          operationId: 'op-solar-047',
+          operationCode: 'OP-2026-0047',
+          jobTitle: 'Solar Panel Inspection #47',
+          localVersion: 2,
+          serverVersion: 3,
+          conflictType: 'CONCURRENT_INSPECTION_EDIT',
+          localData: JSON.stringify({ condition: 'NEEDS_MAINTENANCE', temp: 68.4, notes: 'Worker: Replace bypass diode on Cell 12.' }),
+          serverData: JSON.stringify({ condition: 'CRITICAL_FAILURE', temp: 82.1, notes: 'Supervisor: Full junction box swap required.' }),
+          status: 'UNRESOLVED',
+          createdAt: new Date().toISOString()
+        });
+        refreshAllData();
+        alert('Conflict Injected! Check Conflicts tab.');
+      };
+
+      return (
+        <div className="min-h-screen flex flex-col">
+          {/* JUDGE DEMO CONTROLLER BAR */}
+          <div className="bg-slate-950 border-b border-sky-900/40 px-4 py-2 text-xs flex flex-wrap items-center justify-between gap-2 sticky top-0 z-50 shadow-lg">
+            <div className="flex items-center gap-2">
+              <span className="bg-sky-900/80 text-sky-300 font-bold px-2 py-0.5 rounded border border-sky-700 uppercase tracking-wider text-[10px]">
+                ⚡ Judge Demo Bar
+              </span>
+              <span className="text-slate-400 hidden sm:inline">Offline Continuity Simulation</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsSimulatedOffline(!isSimulatedOffline)}
+                className={`px-3 py-1 rounded font-bold transition-all ${
+                  isSimulatedOffline ? 'bg-rose-600 text-white ring-2 ring-rose-400' : 'bg-slate-800 text-rose-300 hover:bg-rose-950 border border-rose-900'
+                }`}
+              >
+                {isSimulatedOffline ? '🔴 OFFLINE ACTIVE' : 'Simulate Network Loss'}
+              </button>
+
+              <button
+                onClick={() => setIsSimulatedInterrupted(!isSimulatedInterrupted)}
+                className={`px-3 py-1 rounded font-bold transition-all ${
+                  isSimulatedInterrupted ? 'bg-amber-600 text-white ring-2 ring-amber-400' : 'bg-slate-800 text-amber-300 hover:bg-amber-950 border border-amber-900'
+                }`}
+              >
+                {isSimulatedInterrupted ? '⏸️ PAUSED AT CHECKPOINT' : 'Interrupt Upload'}
+              </button>
+
+              <button
+                onClick={() => {
+                  setIsSimulatedOffline(false);
+                  setIsSimulatedInterrupted(false);
+                  triggerContinuitySync();
+                }}
+                className="px-3 py-1 rounded font-bold bg-emerald-700 hover:bg-emerald-600 text-white border border-emerald-500 shadow-sm"
+              >
+                🔄 Restore & Resume
+              </button>
+
+              <button
+                onClick={injectConflict}
+                className="px-2.5 py-1 rounded font-bold bg-purple-900/60 text-purple-200 hover:bg-purple-800 border border-purple-700"
+              >
+                Inject Conflict
+              </button>
+            </div>
+          </div>
+
+          {/* PERSISTENT STATUS BAR */}
+          {isSimulatedOffline ? (
+            <div className="bg-rose-600 text-white px-4 py-1.5 text-xs font-semibold flex items-center justify-center gap-2 shadow-md">
+              <span>🔴 OFFLINE MODE ACTIVE — All Evidence Safely Stored in Local Dexie Vault</span>
+            </div>
+          ) : (
+            <div className="bg-slate-900 text-emerald-400 px-4 py-1 text-[11px] font-medium flex items-center justify-between border-b border-slate-800">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                <span>🟢 ONLINE — Evidence Continuity Engine Ready</span>
+              </div>
+              <span className="text-slate-400">IndexedDB: Active</span>
+            </div>
+          )}
+
+          {/* NAVBAR */}
+          <nav className="glass-panel border-b border-slate-800 px-4 py-3 flex flex-wrap items-center justify-between gap-3 sticky top-10 z-40">
+            <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => setActiveTab('WORKER')}>
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-sky-600 to-cyan-400 flex items-center justify-center shadow-md text-white font-extrabold text-sm">
+                SF
+              </div>
+              <div>
+                <span className="font-extrabold text-base bg-gradient-to-r from-sky-400 via-cyan-200 to-white bg-clip-text text-transparent">
+                  SyncField
+                </span>
+                <span className="text-[10px] ml-1.5 px-1.5 py-0.2 bg-sky-950 text-sky-400 rounded border border-sky-800 font-bold uppercase">
+                  PWA
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setActiveTab('WORKER')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${activeTab === 'WORKER' ? 'bg-sky-600 text-white' : 'text-slate-400 hover:text-white'}`}
+              >
+                My Jobs
+              </button>
+              <button
+                onClick={() => setActiveTab('SYNC')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold relative ${activeTab === 'SYNC' ? 'bg-sky-600 text-white' : 'text-slate-400 hover:text-white'}`}
+              >
+                Sync Center {queueItems.length > 0 && <span className="ml-1 bg-amber-500 text-black px-1.5 py-0.2 rounded-full text-[10px] font-black">{queueItems.length}</span>}
+              </button>
+              <button
+                onClick={() => setActiveTab('SUPERVISOR')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${activeTab === 'SUPERVISOR' ? 'bg-sky-600 text-white' : 'text-slate-400 hover:text-white'}`}
+              >
+                Evidence Vault
+              </button>
+              <button
+                onClick={() => setActiveTab('CONFLICTS')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold relative ${activeTab === 'CONFLICTS' ? 'bg-sky-600 text-white' : 'text-slate-400 hover:text-white'}`}
+              >
+                Conflicts {conflicts.filter(c => c.status === 'UNRESOLVED').length > 0 && <span className="ml-1 bg-rose-500 text-white px-1.5 py-0.2 rounded-full text-[10px] font-bold">{conflicts.filter(c => c.status === 'UNRESOLVED').length}</span>}
+              </button>
+              <button
+                onClick={() => setActiveTab('AUDIT')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${activeTab === 'AUDIT' ? 'bg-sky-600 text-white' : 'text-slate-400 hover:text-white'}`}
+              >
+                Audit Timeline
+              </button>
+            </div>
+          </nav>
+
+          {/* BODY CONTENT */}
+          <main className="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 space-y-6">
+
+            {/* TAB 1: WORKER DASHBOARD */}
+            {activeTab === 'WORKER' && (
+              <div className="space-y-6">
+                <div className="glass-panel p-5 rounded-2xl border border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div>
+                    <h1 className="text-xl font-black text-white">Technician Operations Hub</h1>
+                    <p className="text-xs text-slate-400">Worker: <strong>Worker-01 (Alex Rivera)</strong> • Org: <strong>SyncField Demo Organization</strong></p>
+                  </div>
+                  <div className="flex gap-2">
+                    <div className="bg-slate-900 px-3.5 py-2 rounded-xl border border-slate-800">
+                      <p className="text-[10px] uppercase font-bold text-slate-400">Assigned</p>
+                      <p className="text-base font-extrabold text-sky-400">{jobs.length}</p>
+                    </div>
+                    <div className="bg-slate-900 px-3.5 py-2 rounded-xl border border-slate-800">
+                      <p className="text-[10px] uppercase font-bold text-slate-400">Local Queue</p>
+                      <p className="text-base font-extrabold text-amber-400">{queueItems.length}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {jobs.map(job => (
+                    <div key={job.id} className="glass-card p-5 rounded-2xl border border-slate-800 hover:border-sky-500/50 transition-all flex flex-col justify-between space-y-4">
+                      <div>
+                        <div className="flex justify-between items-start mb-2">
+                          <span className="font-mono text-xs font-bold text-sky-400 bg-sky-950 px-2 py-0.5 rounded border border-sky-800">{job.jobCode}</span>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800">{job.priority}</span>
+                        </div>
+                        <h3 className="text-base font-bold text-white">{job.title}</h3>
+                        <p className="text-xs text-cyan-400 font-semibold mt-0.5">Asset: {job.assetName}</p>
+                        <p className="text-xs text-slate-400 mt-2 line-clamp-2">{job.description}</p>
+                      </div>
+
+                      <button
+                        onClick={() => startInspection(job)}
+                        className="w-full py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-1.5"
+                      >
+                        <span>Open Field Inspection</span> →
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* TAB 2: FIELD INSPECTION & EVIDENCE CAPTURE */}
+            {activeTab === 'JOB_EXEC' && selectedJob && (
+              <div className="space-y-6 max-w-4xl mx-auto">
+                <div className="flex justify-between items-center">
+                  <button onClick={() => setActiveTab('WORKER')} className="text-xs font-semibold text-slate-400 hover:text-white">
+                    ← Back to Jobs
+                  </button>
+                  <span className="text-xs font-mono bg-sky-950 px-2.5 py-1 rounded border border-sky-800 text-sky-300 font-bold">
+                    Target: {selectedJob.assetName}
+                  </span>
+                </div>
+
+                {savedAlert && (
+                  <div className="glass-panel p-4 rounded-2xl border border-emerald-500 bg-emerald-950/40 text-emerald-300 space-y-2">
+                    <div className="flex items-center gap-2 font-bold text-sm">
+                      <span>✅ OFFLINE — EVIDENCE PACKAGE STORED IN LOCAL VAULT</span>
+                    </div>
+                    <p className="text-xs text-emerald-200/80">
+                      All telemetry and media have been sealed with SHA-256 hashes and queued. Switch to Sync Center to view transfer progress!
+                    </p>
+                    <button onClick={() => setActiveTab('SYNC')} className="px-4 py-1.5 rounded-lg bg-emerald-600 text-black font-bold text-xs">
+                      Open Sync Center →
+                    </button>
+                  </div>
+                )}
+
+                {/* Inspection Parameters */}
+                <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-4">
+                  <h2 className="text-sm font-bold text-white">1. Diagnostic Readings & Inspection Data</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs font-semibold text-slate-300">Condition Assessment</label>
+                      <select value={condition} onChange={e => setCondition(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-white mt-1">
+                        <option value="EXCELLENT">EXCELLENT (Nominal)</option>
+                        <option value="GOOD">GOOD (Minor wear)</option>
+                        <option value="NEEDS_MAINTENANCE">NEEDS_MAINTENANCE (Action required)</option>
+                        <option value="CRITICAL_FAILURE">CRITICAL_FAILURE (Urgent danger)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-slate-300">Thermal Reading (°C)</label>
+                      <input type="number" step="0.1" value={tempReading} onChange={e => setTempReading(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-white mt-1" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-slate-300">Technician Notes</label>
+                    <textarea rows="3" value={notes} onChange={e => setNotes(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-white mt-1" />
+                  </div>
+                </div>
+
+                {/* GPS Telemetry */}
+                <div className="glass-panel p-4 rounded-2xl border border-slate-800 flex justify-between items-center text-xs">
+                  <div>
+                    <p className="font-bold text-emerald-400">📍 GPS Hardware Telemetry Locked</p>
+                    <p className="font-mono text-slate-300 mt-0.5">Lat: 37.774929° N | Long: -122.419416° W</p>
+                  </div>
+                  <span className="font-mono text-slate-400">{new Date().toLocaleTimeString()} UTC</span>
+                </div>
+
+                {/* Evidence Capture */}
+                <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h2 className="text-sm font-bold text-white">2. Multimedia Evidence Vault & SHA-256 Hashes</h2>
+                    <div className="flex gap-2">
+                      <button onClick={() => captureMedia('PHOTO')} className="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs">
+                        📷 Capture Photo
+                      </button>
+                      <button onClick={() => captureMedia('VIDEO')} className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs">
+                        🎥 Capture Video (18.4MB)
+                      </button>
+                      <button onClick={() => captureMedia('VOICE_NOTE')} className="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs">
+                        🎙️ Voice Memo
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {capturedFiles.map((file, i) => (
+                      <div key={file.fileId} className="bg-slate-900 p-3 rounded-xl border border-slate-800 space-y-1.5">
+                        <div className="flex justify-between text-xs font-bold text-slate-200">
+                          <span>{file.fileName}</span>
+                          <span className="text-slate-400">{(file.fileSize / 1024 / 1024).toFixed(1)} MB</span>
+                        </div>
+                        <div className="bg-slate-950 p-2 rounded text-[10px] font-mono text-emerald-400 break-all border border-emerald-900/50">
+                          SHA-256: {file.fileHash}
+                        </div>
+                      </div>
+                    ))}
+                    {capturedFiles.length === 0 && (
+                      <p className="text-xs text-slate-500 col-span-2 text-center py-4">No media captured yet. Click the buttons above.</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Seal Action */}
+                <button
+                  onClick={handleSavePackage}
+                  className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-sky-600 to-cyan-500 hover:from-sky-500 hover:to-cyan-400 text-white font-black text-sm shadow-xl transition-all"
+                >
+                  🔒 Seal Evidence Package & Save to Offline Vault
+                </button>
+              </div>
+            )}
+
+            {/* TAB 3: SYNC CENTER */}
+            {activeTab === 'SYNC' && (
+              <div className="space-y-6 max-w-5xl mx-auto">
+                <div className="glass-panel p-5 rounded-2xl border border-slate-800 flex justify-between items-center">
+                  <div>
+                    <h1 className="text-xl font-black text-white">Evidence Continuity Sync Center</h1>
+                    <p className="text-xs text-slate-400">Resumable Chunks • SHA-256 Checkpoint Verifier</p>
+                  </div>
+                  <button onClick={triggerContinuitySync} className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-md">
+                    ▶ Trigger Sync
+                  </button>
+                </div>
+
+                {/* In Flight Progress Card */}
+                {syncProgress && (
+                  <div className="glass-panel p-5 rounded-2xl border border-sky-500 bg-slate-950 space-y-3 shadow-xl">
+                    <div className="flex justify-between items-center text-xs font-bold">
+                      <span className="text-sky-300">In-Flight: {syncProgress.operationId}</span>
+                      <span className="px-2.5 py-1 rounded-full bg-sky-950 text-sky-400 border border-sky-800">{syncProgress.state}</span>
+                    </div>
+
+                    <div className="w-full h-3 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
+                      <div
+                        className={`h-full transition-all duration-300 ${syncProgress.state === 'PAUSED_RETRYING' ? 'bg-amber-500' : syncProgress.state === 'SYNCED' ? 'bg-emerald-500' : 'bg-sky-500'}`}
+                        style={{ width: `${Math.round((syncProgress.uploadedBytes / syncProgress.totalBytes) * 100)}%` }}
+                      />
+                    </div>
+
+                    <div className="flex justify-between text-xs font-mono text-slate-300">
+                      <span>Chunk #{syncProgress.checkpoint} of {syncProgress.totalChunks}</span>
+                      <span>{(syncProgress.uploadedBytes / 1024 / 1024).toFixed(1)} MB / {(syncProgress.totalBytes / 1024 / 1024).toFixed(1)} MB ({Math.round((syncProgress.uploadedBytes / syncProgress.totalBytes) * 100)}%)</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Queue */}
+                <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-3">
+                  <h3 className="text-sm font-bold text-white">Local Queue ({queueItems.length})</h3>
+                  {queueItems.map(item => (
+                    <div key={item.id} className="p-3 bg-slate-900 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
+                      <div>
+                        <span className="font-mono font-bold text-sky-400">{item.operationId}</span>
+                        <span className="ml-2 px-2 py-0.5 rounded bg-amber-950 text-amber-300 text-[10px] font-bold">{item.status}</span>
+                      </div>
+                      <span className="text-slate-400">{new Date(item.enqueuedAt).toLocaleTimeString()}</span>
+                    </div>
+                  ))}
+                  {queueItems.length === 0 && <p className="text-xs text-slate-500 text-center py-4">Queue is clear.</p>}
+                </div>
+              </div>
+            )}
+
+            {/* TAB 4: SUPERVISOR EVIDENCE VAULT */}
+            {activeTab === 'SUPERVISOR' && (
+              <div className="space-y-6">
+                <div className="glass-panel p-5 rounded-2xl border border-slate-800">
+                  <h1 className="text-xl font-black text-white">Supervisor Evidence Vault</h1>
+                  <p className="text-xs text-slate-400">Cryptographically verified field packages</p>
+                </div>
+
+                <div className="space-y-4">
+                  {operations.map(op => (
+                    <div key={op.id} className="glass-card p-5 rounded-2xl border border-slate-800 space-y-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-xs font-bold text-sky-400">{op.operationId}</span>
+                            <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-emerald-950 text-emerald-300 border border-emerald-800">INTEGRITY VERIFIED</span>
+                          </div>
+                          <h3 className="text-base font-bold text-white mt-1">{op.jobTitle}</h3>
+                          <p className="text-xs text-slate-400">Asset: {op.assetName} • Technician: {op.workerName}</p>
+                        </div>
+                        <span className="text-xs font-mono text-slate-400">{new Date(op.clientCreatedAt).toLocaleString()}</span>
+                      </div>
+
+                      <div className="bg-slate-950 p-2 rounded text-[10px] font-mono text-emerald-400 break-all border border-emerald-900/40">
+                        Package Hash: {op.evidencePackage?.packageHash}
+                      </div>
+                    </div>
+                  ))}
+                  {operations.length === 0 && <p className="text-xs text-slate-500 text-center py-12">No operations synced yet.</p>}
+                </div>
+              </div>
+            )}
+
+            {/* TAB 5: CONFLICTS */}
+            {activeTab === 'CONFLICTS' && (
+              <div className="space-y-6 max-w-4xl mx-auto">
+                <div className="glass-panel p-5 rounded-2xl border border-slate-800">
+                  <h1 className="text-xl font-black text-white">Conflict Detection & Resolution</h1>
+                  <p className="text-xs text-slate-400">3-Way Version Reconciliation</p>
+                </div>
+
+                {conflicts.map(c => (
+                  <div key={c.id} className="glass-card p-5 rounded-2xl border border-rose-900/60 space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="font-mono text-xs font-bold text-sky-400">{c.operationCode}</span>
+                      <span className="px-2 py-0.5 text-[10px] font-bold bg-rose-950 text-rose-300 rounded border border-rose-800">{c.status}</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                      <div className="bg-slate-900 p-3 rounded-xl border border-slate-800">
+                        <p className="font-bold text-sky-400 mb-1">Local Version (v{c.localVersion})</p>
+                        <pre className="font-mono text-[11px] text-slate-300 whitespace-pre-wrap">{c.localData}</pre>
+                      </div>
+                      <div className="bg-slate-900 p-3 rounded-xl border border-slate-800">
+                        <p className="font-bold text-purple-400 mb-1">Server Version (v{c.serverVersion})</p>
+                        <pre className="font-mono text-[11px] text-slate-300 whitespace-pre-wrap">{c.serverData}</pre>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-2">
+                      <button
+                        onClick={async () => {
+                          c.status = 'RESOLVED';
+                          await db.conflicts.put(c);
+                          refreshAllData();
+                        }}
+                        className="px-4 py-2 rounded-xl bg-emerald-600 text-black font-bold text-xs"
+                      >
+                        Apply 3-Way Merge Resolution
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {conflicts.length === 0 && <p className="text-xs text-slate-500 text-center py-12">No active conflicts.</p>}
+              </div>
+            )}
+
+            {/* TAB 6: AUDIT TIMELINE */}
+            {activeTab === 'AUDIT' && (
+              <div className="space-y-6 max-w-4xl mx-auto">
+                <div className="glass-panel p-5 rounded-2xl border border-slate-800">
+                  <h1 className="text-xl font-black text-white">Immutable Audit Timeline</h1>
+                  <p className="text-xs text-slate-400">Cryptographic audit trail of all field actions</p>
+                </div>
+
+                <div className="space-y-3">
+                  {auditLogs.map(log => (
+                    <div key={log.id} className="glass-card p-4 rounded-xl border border-slate-800 flex justify-between items-start gap-4">
+                      <div>
+                        <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-sky-950 text-sky-300 border border-sky-800">
+                          {log.action}
+                        </span>
+                        <p className="text-xs text-slate-200 mt-1 font-medium">{log.description}</p>
+                      </div>
+                      <span className="text-[10px] font-mono text-slate-400 whitespace-nowrap">
+                        {new Date(log.timestamp).toLocaleTimeString()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+          </main>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
