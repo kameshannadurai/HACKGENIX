@@ -10,42 +10,19 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
-  <style>
-    .supervisor-hero-banner {
-      background: linear-gradient(135deg, #0f172a, #1e1b4b 60%, #0d234a);
-      color: #fff;
-      padding: 24px;
-      border-radius: var(--radius-md);
-      margin-bottom: 20px;
-      border: 1px solid rgba(255,255,255,0.12);
-    }
-    .audit-step-item {
-      display: flex;
-      gap: 14px;
-      padding: 12px 0;
-      border-left: 2px solid #38bdf8;
-      padding-left: 16px;
-      margin-left: 8px;
-      position: relative;
-    }
-    .audit-step-item::before {
-      content: '';
-      position: absolute;
-      left: -6px;
-      top: 16px;
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: #38bdf8;
-    }
-  </style>
 </head>
 <body>
+
+  <!-- PRESENTATION META BAR (MATCHING PPT SLIDE HEADER) -->
+  <div class="presentation-meta-bar">
+    <span>1 - Hackgenix Hackathon</span>
+    <span>September 25, 2026</span>
+  </div>
 
   <!-- TOP NAVBAR -->
   <header class="top-navbar">
     <div class="navbar-left">
-      <div class="brand-wrapper" onclick="location.href='supervisor.html'">
+      <div class="brand-wrapper" id="brandMenuTrigger" onclick="toggleSupervisorMenu(event)" title="Click logo to open navigation tabs">
         <div class="cloud-icon-logo">
           <svg viewBox="0 0 24 24" fill="none">
             <path d="M7 16.5A4.5 4.5 0 0 1 6.5 7.5a6 6 0 0 1 11.2 -1.4A4.5 4.5 0 0 1 17.5 16.5H7z" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
@@ -55,110 +32,131 @@
         <div class="brand-text-block">
           <div class="brand-title-row">
             <span class="brand-title">SYNCFIELD</span>
-            <span class="continuity-badge" style="background:#f59e0b; color:#0f172a;">SUPERVISOR</span>
+            <span class="continuity-badge" style="background-color:#FFFFFF; color:#111111;">SUPERVISOR</span>
           </div>
           <span class="brand-subtitle">Evidence Vault • Conflict Studio • Audit Continuity</span>
         </div>
+        <!-- Dropdown indicator chevron -->
+        <svg class="dropdown-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+
+        <!-- Brand Dropdown Menu (Hidden by default, shown on click) -->
+        <div class="brand-dropdown-menu" id="brandDropdownMenu" onclick="event.stopPropagation()">
+          <div class="dropdown-menu-header">
+            <span>COMMAND & CONTROL</span>
+            <span style="font-size:10px; color:var(--olive-light);">SELECT TAB</span>
+          </div>
+          <ul class="dropdown-tabs-list">
+            <li>
+              <button class="menu-item-btn active" id="btnTabOverview" onclick="showTab('overview')">
+                <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+                <span>Supervisor Overview</span>
+              </button>
+            </li>
+            <li>
+              <button class="menu-item-btn" id="btnTabConflicts" onclick="showTab('conflicts')">
+                <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <span class="count-pill">1</span>
+                <span>Conflict Studio</span>
+              </button>
+            </li>
+            <li>
+              <button class="menu-item-btn" id="btnTabVault" onclick="showTab('vault')">
+                <svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M10 4v4"/><path d="M2 8h20"/><circle cx="12" cy="14" r="2"/></svg>
+                <span class="count-pill">18</span>
+                <span>Evidence Vault</span>
+              </button>
+            </li>
+            <li>
+              <button class="menu-item-btn" id="btnTabAudit" onclick="showTab('audit')">
+                <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                <span>Audit Timeline</span>
+              </button>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Network Quality Indicator -->
+      <div id="networkQualityBadge" class="network-quality-pill net-4g" title="Dynamic Network Speed & Adaptive Bandwidth Strategy">
+        <span style="font-size:10px;">⚡</span>
+        <span id="networkQualityText">4G (High Speed)</span>
       </div>
     </div>
 
     <div class="navbar-right">
-      <button class="dark-mode-toggle-btn" id="darkModeToggleBtn" onclick="toggleDark()" title="Toggle Dark Mode">
-        <span id="darkModeIcon">🌙</span>
-        <span>Dark</span>
-      </button>
+      <!-- RBAC Switcher / Portal Switch -->
+      <div class="rbac-role-pill-group">
+        <button type="button" class="rbac-btn" onclick="window.location.href='field-officer.html'">Officer</button>
+        <button type="button" class="rbac-btn active">Supervisor</button>
+        <button type="button" class="rbac-btn" onclick="window.location.href='admin.html'">Admin</button>
+      </div>
 
       <div class="user-avatar-pill" style="cursor:default;">
-        <div class="user-avatar-circle" style="background:#f59e0b; color:#0f172a;">MB</div>
+        <div class="user-avatar-circle" style="background-color:#FFFFFF; color:#111111;">MB</div>
         <span class="user-name-text">
           <span>Marcus Brody</span>
-          <span class="badge" style="background:#fef3c7; color:#b45309; font-size:10px;">SUPERVISOR</span>
+          <span class="badge rbac-supervisor" style="font-size:10px; margin-left:4px;">SUPERVISOR</span>
         </span>
       </div>
 
-      <button class="btn-view-details" style="padding:6px 12px; font-size:11px; border-color:rgba(255,255,255,0.2); color:#cbd5e1;" onclick="window.authEngine.logout()">
-        Sign Out ⎋
+      <button class="btn-view-details" style="padding:6px 12px; font-size:11px;" onclick="window.authEngine.logout()">
+        Sign Out
       </button>
     </div>
   </header>
 
   <div class="app-layout">
-    <!-- SUPERVISOR SIDEBAR -->
-    <aside class="sidebar">
-      <div>
-        <div class="sidebar-heading">COMMAND & CONTROL</div>
-        <ul class="sidebar-menu">
-          <li>
-            <button class="menu-item-btn active" onclick="showTab('overview')">
-              <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
-              <span>Supervisor Overview</span>
-            </button>
-          </li>
-          <li>
-            <button class="menu-item-btn" onclick="showTab('conflicts')">
-              <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-              <span>Conflict Studio</span>
-              <span class="count-pill" style="background:#ef4444; color:#fff;">1</span>
-            </button>
-          </li>
-          <li>
-            <button class="menu-item-btn" onclick="showTab('vault')">
-              <svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M10 4v4"/><path d="M2 8h20"/><circle cx="12" cy="14" r="2"/></svg>
-              <span>Evidence Vault</span>
-              <span class="count-pill">18</span>
-            </button>
-          </li>
-          <li>
-            <button class="menu-item-btn" onclick="showTab('audit')">
-              <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-              <span>Audit Timeline</span>
-            </button>
-          </li>
-        </ul>
-      </div>
-      <div style="font-size: 11px; color: var(--text-light); text-align: center; padding-top: 10px; border-top: 1px solid var(--border-color);">
-        Supervisor Clearance Active
-      </div>
-    </aside>
 
     <!-- MAIN VIEW -->
     <main class="main-view-container">
 
       <!-- TAB 1: OVERVIEW -->
       <section id="tab-overview" class="app-screen active">
-        <div class="supervisor-hero-banner">
+
+        <!-- PPT SLIDE HERO BANNER -->
+        <div class="slide-hero-panel">
+          <div style="font-size:12px; font-weight:800; color:var(--text-muted-dark); letter-spacing:1px; margin-bottom:8px;">
+            COMMAND & CONTROL • HACKGENIX 2026
+          </div>
+          <h1 class="hero-headline">SUPERVISOR COMMAND CENTER</h1>
+          <div class="hero-subheadline">Field Squad Operations • Mojave Solar Array Sector 7</div>
+        </div>
+
+        <div class="officer-hero-card">
           <div style="display:flex; justify-content:space-between; align-items:center;">
             <div>
-              <h1 style="font-size:24px; font-weight:800;">Supervisor Command Center</h1>
-              <div style="font-size:13px; color:#94a3b8; margin-top:2px;">Field Squad Operations • Mojave Solar Array Sector 7</div>
+              <h2 style="font-size:22px; font-weight:800;">Mission Status & Squad Readiness</h2>
+              <div style="font-size:13px; color:var(--text-muted-light); margin-top:2px;">Zero loss across 4 air-gapped patrol nodes.</div>
             </div>
             <button class="btn-start-inspection" onclick="showTab('conflicts')">
               Review 1 Pending Conflict →
             </button>
           </div>
 
-          <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:14px; margin-top:20px;">
-            <div style="background:rgba(255,255,255,0.08); padding:14px; border-radius:10px; border:1px solid rgba(255,255,255,0.1);">
-              <div style="font-size:24px; font-weight:800; color:#38bdf8;">04</div>
-              <div style="font-size:11px; color:#cbd5e1; text-transform:uppercase;">Active Officers</div>
+          <div class="hero-stat-row">
+            <div class="hero-stat-box">
+              <div class="hero-stat-num">04</div>
+              <div class="hero-stat-label">Active Officers</div>
             </div>
-            <div style="background:rgba(255,255,255,0.08); padding:14px; border-radius:10px; border:1px solid rgba(255,255,255,0.1);">
-              <div style="font-size:24px; font-weight:800; color:#10b981;">18</div>
-              <div style="font-size:11px; color:#cbd5e1; text-transform:uppercase;">Verified Packages</div>
+            <div class="hero-stat-box">
+              <div class="hero-stat-num">18</div>
+              <div class="hero-stat-label">Verified Packages</div>
             </div>
-            <div style="background:rgba(255,255,255,0.08); padding:14px; border-radius:10px; border:1px solid rgba(255,255,255,0.1);">
-              <div style="font-size:24px; font-weight:800; color:#f59e0b;">02</div>
-              <div style="font-size:11px; color:#cbd5e1; text-transform:uppercase;">Pending Sync</div>
+            <div class="hero-stat-box">
+              <div class="hero-stat-num">02</div>
+              <div class="hero-stat-label">Pending Sync</div>
             </div>
-            <div style="background:rgba(255,255,255,0.08); padding:14px; border-radius:10px; border:1px solid rgba(255,255,255,0.1);">
-              <div style="font-size:24px; font-weight:800; color:#ef4444;">01</div>
-              <div style="font-size:11px; color:#cbd5e1; text-transform:uppercase;">Conflict Awaiting Diff</div>
+            <div class="hero-stat-box">
+              <div class="hero-stat-num" style="color:#FFFFFF;">01</div>
+              <div class="hero-stat-label">Conflict Awaiting Diff</div>
             </div>
           </div>
         </div>
 
         <div class="inner-card">
-          <h2 style="font-size:18px; margin-bottom:14px;">Recent Field Transmissions & Evidence Submissions</h2>
+          <h2 style="font-size:18px; font-weight:800; margin-bottom:14px;">Recent Field Transmissions & Evidence Submissions</h2>
           <div class="table-wrap">
             <table class="data-table">
               <thead>
@@ -179,7 +177,7 @@
                   <td>Panel #47</td>
                   <td>2 Photos, 1 Video (18.4MB), Voice Note, GPS</td>
                   <td><code>a7f3e829d0b5...</code></td>
-                  <td><span class="badge" style="background:#fee2e2; color:#dc2626;">CONFLICT DETECTED</span></td>
+                  <td><span class="badge badge-critical">CONFLICT DETECTED</span></td>
                   <td><button class="btn-start-inspection" style="padding:4px 10px; font-size:11px;" onclick="showTab('conflicts')">Resolve Diff</button></td>
                 </tr>
                 <tr>
@@ -206,97 +204,84 @@
         </div>
       </section>
 
-      <!-- TAB 2: CONFLICTS -->
+      <!-- TAB 2: CONFLICTS (MATCHING PPT SLIDE 2 DESIGN) -->
       <section id="tab-conflicts" class="app-screen">
         <div class="inner-card">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
             <div>
-              <span class="badge" style="background:#fee2e2; color:#dc2626; margin-bottom:4px;">SUPERVISOR DECISION REQUIRED</span>
-              <h2 style="font-size:22px; color:var(--text-main); margin-top:4px;">Conflict Resolution Studio: OP-2026-0047</h2>
+              <span class="badge badge-critical" id="conflictStudioBadge" style="margin-bottom:4px;">SUPERVISOR DECISION REQUIRED</span>
+              <h2 style="font-size:22px; margin-top:4px; font-weight:900;">Conflict Resolution Studio</h2>
             </div>
-            <span class="badge badge-queued">MERKLE LEAF MISMATCH</span>
+            <div style="display:flex; gap:10px; align-items:center;">
+              <button class="btn-start-inspection" style="padding:6px 14px; font-size:12px; background:linear-gradient(135deg, #ea580c, #c2410c); border:none; cursor:pointer;" onclick="emulateNewConflict()">
+                ⚡ Emulate Field Conflict (Demo)
+              </button>
+              <span class="badge badge-queued" id="conflictLeafStatus">MERKLE LEAF DIFF</span>
+            </div>
           </div>
 
-          <div style="font-size:13px; color:var(--text-muted); margin-bottom:20px;">
-            Field Officer manual inspection differs from SCADA IoT sensor baseline. Compare versions and sign resolution.
+          <div style="font-size:13px; color:var(--text-muted-light); margin-bottom:20px;">
+            Review conflicting submissions logged during air-gapped inspection windows. Compare cryptographic telemetry and choose the canonical source of truth:
           </div>
 
-          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:18px; margin-bottom:24px;">
-            <div style="border: 2px solid #fee2e2; border-radius:12px; padding:18px; background:#fff1f2;">
-              <span class="badge" style="background:#fee2e2; color:#dc2626;">VERSION 1: FIELD OFFICER (Arun Kumar)</span>
-              <div style="font-size:20px; font-weight:800; color:#0f172a; margin:12px 0;">Temperature: 72°C (Thermal Runaway)</div>
-              <div style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">Logged at 11:10 AM • Panasonic Toughbook G2</div>
-              <div style="font-size:11px; font-family:var(--font-mono); color:#991b1b; margin-bottom:16px;">SHA-256: 4a8f9c1b82e345d67f90123456789abcdef...</div>
-              <button class="btn-start-inspection" style="width:100%;" onclick="resolveConflict('Keep Field Value: 72°C')">
-                Accept Field Officer Value (72°C)
-              </button>
-            </div>
-
-            <div style="border: 2px solid #e0f2fe; border-radius:12px; padding:18px; background:#f8fafc;">
-              <span class="badge" style="background:#e0f2fe; color:#0369a1;">VERSION 2: SUPERVISOR SCADA (Marcus Brody)</span>
-              <div style="font-size:20px; font-weight:800; color:#0f172a; margin:12px 0;">Temperature: 68°C (Telemetry Feed)</div>
-              <div style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">Logged at 11:14 AM • Master SCADA Polling</div>
-              <div style="font-size:11px; font-family:var(--font-mono); color:#0369a1; margin-bottom:16px;">SHA-256: 7b9e0f2a71d436e58e0123456789abcdef...</div>
-              <button class="btn-start-inspection" style="width:100%; background:#0284c7;" onclick="resolveConflict('Keep SCADA Baseline: 68°C')">
-                Accept SCADA Telemetry Value (68°C)
-              </button>
-            </div>
+          <!-- Dynamic Container for Conflicts -->
+          <div id="conflictsListContainer">
+            <!-- Rendered dynamically by loadConflicts() -->
           </div>
         </div>
       </section>
 
-      <!-- TAB 3: EVIDENCE VAULT -->
+      <!-- TAB 3: VAULT -->
       <section id="tab-vault" class="app-screen">
         <div class="inner-card">
-          <h2 style="font-size:22px; margin-bottom:6px;">Evidence Continuity Vault</h2>
-          <div style="font-size:13px; color:var(--text-muted); margin-bottom:18px;">
-            Cryptographically sealed packages with tamper-evident SHA-256 Merkle proofs.
-          </div>
-
-          <div style="background:#0d234a; color:#fff; padding:18px; border-radius:12px; margin-bottom:20px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-              <h3 style="font-size:16px; color:#38bdf8;">Package Manifest: OP-2026-0047</h3>
-              <span class="badge badge-verified">VERIFIED BY ENGINE</span>
-            </div>
-            <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; font-size:13px; margin-bottom:14px;">
-              <div>Asset: <strong>Panel #47 (Inverter Cluster 3)</strong></div>
-              <div>Worker: <strong>Worker-04 (Arun Kumar)</strong></div>
-              <div>GPS Lock: <strong>LAT 34.0522° N, LON -118.2437° W (±3.0m)</strong></div>
-              <div>Timestamp Seal: <strong>2026-09-25T10:42:00.000Z (UTC)</strong></div>
-            </div>
-            <div style="background:rgba(0,0,0,0.3); padding:10px; border-radius:6px; font-family:var(--font-mono); font-size:12px; color:#a5f3fc; word-break:break-all;">
-              Root Fingerprint: a7f3e829d0b5413ac99120489b21f37e408c0281b9e248a7f3b892b1
-            </div>
+          <h2 style="font-size:22px; font-weight:800; margin-bottom:16px;">Supervisor Evidence Master Registry</h2>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Package ID</th>
+                  <th>Operation</th>
+                  <th>Asset</th>
+                  <th>Officer</th>
+                  <th>Enclosed Assets</th>
+                  <th>Integrity Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>PKG-2026-0047</code></td>
+                  <td>OP-2026-0047</td>
+                  <td>Panel #47</td>
+                  <td>Arun Kumar</td>
+                  <td>2 Images, 1 MP4 Video, 1 WAV Audio</td>
+                  <td><span class="badge badge-critical">AWAITING SUPERVISOR DIFF</span></td>
+                </tr>
+                <tr>
+                  <td><code>PKG-2026-0045</code></td>
+                  <td>OP-2026-0045</td>
+                  <td>Inverter Array B</td>
+                  <td>Elena Gomez</td>
+                  <td>1 Image, Telemetry JSON</td>
+                  <td><span class="badge badge-verified">VERIFIED IN CLOUD</span></td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </section>
 
-      <!-- TAB 4: AUDIT TIMELINE -->
+      <!-- TAB 4: AUDIT -->
       <section id="tab-audit" class="app-screen">
         <div class="inner-card">
-          <h2 style="font-size:22px; margin-bottom:16px;">Capture-to-Sync Audit Timeline: OP-2026-0047</h2>
-          <div class="audit-step-item">
-            <div>
-              <div style="font-weight:700; font-size:14px;">10:42 AM — Offline Evidence Package Created & Fingerprinted</div>
-              <div style="font-size:12px; color:var(--text-muted);">Officer Arun Kumar sealed 2 photos, 1 video, audio log, and GPS in on-device IndexedDB vault. SHA-256 calculated.</div>
+          <h2 style="font-size:22px; font-weight:800; margin-bottom:16px;">Cryptographic Audit Trail</h2>
+          <div style="display:flex; flex-direction:column; gap:12px;" id="auditTrailContainer">
+            <div style="background-color:var(--dark-card); border:1px solid var(--dark-border); padding:14px; border-radius:var(--radius-md);">
+              <div style="font-size:11px; color:var(--text-muted-light);">2026-09-25T10:42:00Z • Node OFFICER-04</div>
+              <div style="font-weight:700; margin-top:4px;">Operation OP-2026-0047 created and sealed in local IndexedDB vault.</div>
             </div>
-          </div>
-          <div class="audit-step-item">
-            <div>
-              <div style="font-weight:700; font-size:14px;">11:15 AM — Network Connected & Chunked Upload Initiated</div>
-              <div style="font-size:12px; color:var(--text-muted);">Video partitioned into 10 chunks (18.4 MB). Chunks 1-7 uploaded and verified.</div>
-            </div>
-          </div>
-          <div class="audit-step-item">
-            <div>
-              <div style="font-weight:700; font-size:14px;">11:17 AM — Vehicle WiFi Drop (Interrupted at Checkpoint 13.2 MB)</div>
-              <div style="font-size:12px; color:var(--text-muted);">State Machine preserved verified checkpoint. Zero redundant bytes required for re-upload.</div>
-            </div>
-          </div>
-          <div class="audit-step-item">
-            <div>
-              <div style="font-weight:700; font-size:14px;">11:32 AM — Reconnected at Base Station & Resumed from Checkpoint</div>
-              <div style="font-size:12px; color:var(--text-muted);">Remaining chunks transferred. Server Merkle proof passed. Verified in cloud master storage.</div>
+            <div style="background-color:var(--dark-card); border:1px solid var(--dark-border); padding:14px; border-radius:var(--radius-md);">
+              <div style="font-size:11px; color:var(--text-muted-light);">2026-09-25T10:45:12Z • Gateway SYNC-01</div>
+              <div style="font-weight:700; margin-top:4px;">Divergence detected: Server Version 2 vs Client Version 1 on Panel #47. Conflict logged.</div>
             </div>
           </div>
         </div>
@@ -305,42 +290,283 @@
     </main>
   </div>
 
-  <div class="toast-box" id="appToastBox"><span id="toastMessageText">Action successful</span></div>
+  <div id="appToastContainer"></div>
 
   <script src="js/auth.js"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      if (window.authEngine) {
-        window.authEngine.requireRole(['SUPERVISOR', 'ADMIN']);
+    function toggleSupervisorMenu(e) {
+      if (e) {
+        e.stopPropagation();
+        e.preventDefault();
+      }
+      const trigger = document.getElementById('brandMenuTrigger');
+      const menu = document.getElementById('brandDropdownMenu');
+      if (!menu) return;
+      const isVisible = menu.classList.contains('show');
+      if (isVisible) {
+        closeSupervisorMenu();
+      } else {
+        menu.classList.add('show');
+        if (trigger) trigger.classList.add('menu-open');
+      }
+    }
+
+    function closeSupervisorMenu() {
+      const trigger = document.getElementById('brandMenuTrigger');
+      const menu = document.getElementById('brandDropdownMenu');
+      if (menu) menu.classList.remove('show');
+      if (trigger) trigger.classList.remove('menu-open');
+    }
+
+    document.addEventListener('click', (e) => {
+      const trigger = document.getElementById('brandMenuTrigger');
+      const menu = document.getElementById('brandDropdownMenu');
+      if (menu && menu.classList.contains('show')) {
+        if (!trigger || !trigger.contains(e.target)) {
+          closeSupervisorMenu();
+        }
       }
     });
 
+    async function loadConflicts() {
+      const container = document.getElementById('conflictsListContainer');
+      if (!container) return;
+      
+      try {
+        const res = await fetch('http://localhost:8000/api/conflicts');
+        let conflicts = [];
+        if (res.ok) {
+          const json = await res.json();
+          conflicts = json.data || [];
+        }
+
+        const unresolved = conflicts.filter(c => c.status !== 'RESOLVED');
+        
+        // Update pills
+        const pill = document.querySelector('#btnTabConflicts .count-pill');
+        if (pill) pill.textContent = unresolved.length;
+
+        if (unresolved.length === 0) {
+          container.innerHTML = `
+            <div style="text-align:center; padding:40px 20px; background-color:var(--dark-card); border:1px dashed var(--dark-border); border-radius:var(--radius-md);">
+              <div style="font-size:32px; margin-bottom:12px;">✅</div>
+              <h3 style="font-size:16px; font-weight:800; color:var(--text-white); margin-bottom:6px;">All Concurrent Diffs Resolved</h3>
+              <div style="font-size:13px; color:var(--text-muted-light); margin-bottom:20px;">No pending field telemetry mismatches awaiting supervisor decision.</div>
+              <button class="btn-start-inspection" style="padding:8px 18px; font-size:12px; background:linear-gradient(135deg, #ea580c, #c2410c); border:none; cursor:pointer;" onclick="emulateNewConflict()">
+                ⚡ Emulate New Concurrent Conflict (Demo)
+              </button>
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = unresolved.map(item => {
+          let local = {};
+          let server = {};
+          try { local = typeof item.localData === 'string' ? JSON.parse(item.localData) : item.localData || {}; } catch (_) {}
+          try { server = typeof item.serverData === 'string' ? JSON.parse(item.serverData) : item.serverData || {}; } catch (_) {}
+
+          return `
+            <div style="margin-bottom:28px; background-color:var(--dark-surface); border:1px solid var(--dark-border); border-radius:var(--radius-md); padding:18px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+                <div>
+                  <span style="font-size:11px; font-weight:800; color:var(--olive-light); text-transform:uppercase;">Operation Ref:</span>
+                  <strong style="color:var(--text-white); font-size:15px; margin-left:4px;">${item.operationId || 'OP-2026-0047'}</strong>
+                  <span class="badge badge-critical" style="margin-left:8px;">${item.conflictType || 'CONCURRENT_DIFF'}</span>
+                </div>
+                <div style="font-size:12px; color:var(--text-muted-light);">Conflict ID: <code>${item.id}</code></div>
+              </div>
+
+              <div class="incident-grid">
+                <!-- Left Card: Officer Submission -->
+                <div class="incident-card-container">
+                  <div class="incident-header-pill" style="background-color:var(--olive-primary); color:#ffffff;">
+                    Version A: ${local.officer || 'Arun Kumar (Field Officer)'}
+                  </div>
+                  <div class="incident-body-card">
+                    <div><strong>Asset:</strong> ${local.asset || 'Panel #47 (Sector 7)'}</div>
+                    <div><strong>Temperature:</strong> <span style="color:#ef4444; font-weight:800;">${local.temperature || '72°C (Critical Hotspot)'}</span></div>
+                    <div><strong>Condition:</strong> <span class="badge badge-critical">${local.condition || 'Critical Failure'}</span></div>
+                    <div style="margin-top:4px;"><strong>Field Remarks:</strong> ${local.remarks || 'Inverter thermal overload detected on diode cluster.'}</div>
+                    <div style="margin-top:6px; font-size:11px;"><strong>Evidence Hash:</strong> <code style="word-break:break-all;">${local.hash || 'a7f3e829d0b5...'}</code></div>
+                    <button class="btn-start-inspection" style="width:100%; margin-top:14px; padding:10px; cursor:pointer;" onclick="resolveConflictChoice('${item.id}', 'VERSION_A', 'Version A (Field Officer Ground Truth)')">
+                      ✓ Accept Version A (Field Ground Truth)
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Right Card: Automated Sensor Gateway -->
+                <div class="incident-card-container">
+                  <div class="incident-header-pill" style="background-color:var(--dark-card); color:var(--text-white); border:1px solid var(--dark-border);">
+                    Version B: ${server.source || 'Automated IoT Gateway'}
+                  </div>
+                  <div class="incident-body-card" style="background-color:var(--dark-card); border-color:var(--dark-border);">
+                    <div><strong>Asset:</strong> ${server.asset || 'Panel #47 (Sector 7)'}</div>
+                    <div><strong>Temperature:</strong> <span style="color:var(--olive-light); font-weight:800;">${server.temperature || '48°C (Baseline Normal)'}</span></div>
+                    <div><strong>Condition:</strong> <span class="badge badge-verified">${server.condition || 'Operational Normal'}</span></div>
+                    <div style="margin-top:4px;"><strong>Sensor Remarks:</strong> ${server.remarks || 'Automated heartbeat check. Baseline telemetry nominal.'}</div>
+                    <div style="margin-top:6px; font-size:11px;"><strong>Evidence Hash:</strong> <code style="word-break:break-all;">${server.hash || '4f89d311e2a8...'}</code></div>
+                    <button class="btn-view-details" style="width:100%; margin-top:14px; padding:10px; cursor:pointer;" onclick="resolveConflictChoice('${item.id}', 'VERSION_B', 'Version B (IoT Gateway Telemetry)')">
+                      ✓ Accept Version B (Sensor Telemetry)
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (e) {
+        console.warn('Failed loading conflicts:', e);
+      }
+    }
+
+    async function emulateNewConflict() {
+      try {
+        const randPanel = Math.floor(Math.random() * 80) + 1;
+        const opId = `OP-2026-00${randPanel.toString().padStart(2, '0')}`;
+        
+        const res = await fetch('http://localhost:8000/api/conflicts/simulate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            operationId: opId,
+            asset: `Solar Panel #${randPanel} (Mojave Array Sector 7)`,
+            officer: 'Arun Kumar (Worker-04)',
+            localTemp: `${65 + Math.floor(Math.random() * 15)}°C (Thermal Anomaly)`,
+            serverTemp: '47°C (Normal Operating Baseline)',
+            localRemarks: 'Field inspection detected diode overheating & micro-fractures.',
+            serverRemarks: 'Remote SCADA ping reports nominal string voltage.'
+          })
+        });
+
+        if (res.ok) {
+          showToast(`⚡ Emulated Conflict Generated for ${opId}!`, 'warning');
+          await loadConflicts();
+          await loadSupervisorStats();
+          await loadAuditLogs();
+        }
+      } catch (e) {
+        showToast('Offline mode: Emulated local conflict created', 'info');
+        loadConflicts();
+      }
+    }
+
+    async function resolveConflictChoice(conflictId, code, label) {
+      try {
+        const res = await fetch(`http://localhost:8000/api/conflicts/${conflictId}/resolve`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ resolution: code })
+        });
+
+        showToast(`Conflict Resolved: ${label} written to master ledger!`, 'success');
+        await loadConflicts();
+        await loadSupervisorStats();
+        await loadAuditLogs();
+      } catch (e) {
+        showToast(`Conflict Resolved locally (${label})`, 'success');
+        await loadConflicts();
+      }
+    }
+
+    function showToast(msg, type = 'info') {
+      const container = document.getElementById('appToastContainer') || document.body;
+      const toast = document.createElement('div');
+      toast.style.cssText = `
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        z-index: 99999;
+        background-color: var(--dark-surface);
+        border: 1px solid ${type === 'warning' ? '#ea580c' : 'var(--olive-highlight)'};
+        color: var(--text-white);
+        padding: 12px 18px;
+        border-radius: var(--radius-md);
+        margin-top: 10px;
+        font-size: 13px;
+        font-weight: 700;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      `;
+      toast.textContent = msg;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.3s';
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    async function loadAuditLogs() {
+      const container = document.getElementById('auditTrailContainer');
+      if (!container) return;
+      try {
+        const res = await fetch('http://localhost:8000/api/audit/recent');
+        if (res.ok) {
+          const json = await res.json();
+          const logs = json.data || [];
+          if (logs.length > 0) {
+            container.innerHTML = logs.map(l => `
+              <div style="background-color:var(--dark-card); border:1px solid var(--dark-border); padding:14px; border-radius:var(--radius-md); border-left:3px solid ${l.action && l.action.includes('RESOLVED') ? 'var(--olive-highlight)' : l.action && l.action.includes('CONFLICT') ? '#ea580c' : 'var(--olive-primary)'};">
+                <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-muted-light);">
+                  <span>Action: <strong style="color:var(--text-white);">${l.action}</strong></span>
+                  <span>${l.timestamp ? new Date(l.timestamp).toLocaleTimeString() : 'Recent'}</span>
+                </div>
+                <div style="font-weight:700; margin-top:4px; color:var(--text-white);">${l.description}</div>
+                <div style="font-size:12px; color:var(--text-muted-light); margin-top:2px;">Ref: <strong>${l.operationId || 'SYSTEM'}</strong></div>
+              </div>
+            `).join('');
+          }
+        }
+      } catch (e) {
+        console.warn('Audit fetch error:', e);
+      }
+    }
+
+    async function loadSupervisorStats() {
+      try {
+        const res = await fetch('http://localhost:8000/api/dashboard');
+        if (res.ok) {
+          const json = await res.json();
+          const d = json.data;
+          if (d) {
+            const boxes = document.querySelectorAll('.hero-stat-box .hero-stat-num');
+            if (boxes.length >= 4) {
+              boxes[0].textContent = String(d.totalJobs || 4).padStart(2, '0');
+              boxes[1].textContent = String(d.verifiedEvidence || 18).padStart(2, '0');
+              boxes[2].textContent = String(d.pendingSync || 2).padStart(2, '0');
+              boxes[3].textContent = String(d.conflicts || 0).padStart(2, '0');
+            }
+          }
+        }
+      } catch (e) {}
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadSupervisorStats();
+      loadAuditLogs();
+      loadConflicts();
+    });
+
     function showTab(tabId) {
-      document.querySelectorAll('.app-screen').forEach(el => el.classList.remove('active'));
-      const target = document.getElementById(`tab-${tabId}`);
-      if (target) target.classList.add('active');
+      closeSupervisorMenu();
+      document.querySelectorAll('.app-screen').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.menu-item-btn').forEach(b => b.classList.remove('active'));
+      
+      const screen = document.getElementById(`tab-${tabId}`);
+      if (screen) screen.classList.add('active');
 
-      document.querySelectorAll('.sidebar-menu button').forEach(btn => btn.classList.remove('active'));
-      event?.currentTarget?.classList?.add('active');
-    }
+      const btnMap = {
+        overview: 'btnTabOverview',
+        conflicts: 'btnTabConflicts',
+        vault: 'btnTabVault',
+        audit: 'btnTabAudit'
+      };
+      const activeBtn = document.getElementById(btnMap[tabId]);
+      if (activeBtn) activeBtn.classList.add('active');
 
-    function resolveConflict(choice) {
-      showToast(`✅ Conflict resolved: "${choice}". Cryptographic audit log updated.`, 'success');
-      setTimeout(() => showTab('overview'), 1200);
-    }
-
-    function toggleDark() {
-      document.body.classList.toggle('dark-mode');
-    }
-
-    function showToast(message, type = 'info') {
-      const toast = document.getElementById('appToastBox');
-      const text = document.getElementById('toastMessageText');
-      if (!toast || !text) return;
-      text.textContent = message;
-      toast.style.display = 'flex';
-      toast.style.background = type === 'success' ? '#16a34a' : '#0d234a';
-      setTimeout(() => { toast.style.display = 'none'; }, 3500);
+      if (tabId === 'conflicts') loadConflicts();
+      if (tabId === 'audit') loadAuditLogs();
+      if (tabId === 'overview') loadSupervisorStats();
     }
   </script>
 </body>

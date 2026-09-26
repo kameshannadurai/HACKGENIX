@@ -12,57 +12,41 @@
   <link rel="stylesheet" href="css/styles.css">
   <style>
     .admin-stat-card {
-      background: #ffffff;
-      border: 1px solid var(--border-color);
+      background-color: var(--dark-surface);
+      border: 1px solid var(--dark-border);
       border-radius: var(--radius-md);
       padding: 20px;
       display: flex;
       flex-direction: column;
-      box-shadow: var(--shadow-card);
     }
     .admin-stat-title {
-      font-size: 12px;
-      font-weight: 700;
+      font-size: 11px;
+      font-weight: 800;
       text-transform: uppercase;
-      letter-spacing: 0.6px;
-      color: var(--text-muted);
+      letter-spacing: 0.8px;
+      color: var(--text-muted-light);
       margin-bottom: 8px;
     }
     .admin-stat-number {
       font-size: 32px;
       font-weight: 900;
-      color: var(--primary-navy);
+      color: var(--text-white);
       line-height: 1;
-    }
-    .activity-stream-box {
-      background: #f8fafc;
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    .activity-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding-bottom: 10px;
-      border-bottom: 1px solid var(--border-color);
-      font-size: 13px;
-    }
-    .activity-row:last-child {
-      border-bottom: none;
-      padding-bottom: 0;
     }
   </style>
 </head>
 <body>
 
+  <!-- PRESENTATION META BAR (MATCHING PPT SLIDE HEADER) -->
+  <div class="presentation-meta-bar">
+    <span>1 - Hackgenix Hackathon</span>
+    <span>September 25, 2026</span>
+  </div>
+
   <!-- TOP NAVBAR -->
   <header class="top-navbar">
     <div class="navbar-left">
-      <div class="brand-wrapper" onclick="location.href='admin.html'">
+      <div class="brand-wrapper" id="brandMenuTrigger" onclick="toggleAdminMenu(event)" title="Click logo to open navigation tabs">
         <div class="cloud-icon-logo">
           <svg viewBox="0 0 24 24" fill="none">
             <path d="M7 16.5A4.5 4.5 0 0 1 6.5 7.5a6 6 0 0 1 11.2 -1.4A4.5 4.5 0 0 1 17.5 16.5H7z" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
@@ -72,192 +56,152 @@
         <div class="brand-text-block">
           <div class="brand-title-row">
             <span class="brand-title">SYNCFIELD</span>
-            <span class="continuity-badge" style="background:#7e22ce; color:#ffffff;">ADMIN</span>
+            <span class="continuity-badge" style="background-color:var(--dark-card); color:var(--text-white);">ADMIN</span>
           </div>
-          <span class="brand-subtitle">System Governance • Fleet Security • Cryptographic Matrix</span>
+          <span class="brand-subtitle">Fleet Governance • Cryptographic Key Management</span>
+        </div>
+        <!-- Dropdown indicator chevron -->
+        <svg class="dropdown-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+
+        <!-- Brand Dropdown Menu (Hidden by default, shown on click) -->
+        <div class="brand-dropdown-menu" id="brandDropdownMenu" onclick="event.stopPropagation()">
+          <div class="dropdown-menu-header">
+            <span>ADMINISTRATION</span>
+            <span style="font-size:10px; color:var(--olive-light);">SELECT TAB</span>
+          </div>
+          <ul class="dropdown-tabs-list">
+            <li>
+              <button class="menu-item-btn active" id="btnTabOverview" onclick="showAdminTab('overview')">
+                <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+                <span>Fleet Overview</span>
+              </button>
+            </li>
+            <li>
+              <button class="menu-item-btn" id="btnTabFleet" onclick="showAdminTab('fleet')">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                <span>Device Security</span>
+              </button>
+            </li>
+            <li>
+              <button class="menu-item-btn" id="btnTabAudit" onclick="showAdminTab('audit')">
+                <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                <span>Master Audit Logs</span>
+              </button>
+            </li>
+            <li>
+              <button class="menu-item-btn" id="btnTabDatabase" onclick="showAdminTab('database')">
+                <svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+                <span>Live Database View</span>
+              </button>
+            </li>
+          </ul>
         </div>
       </div>
     </div>
 
     <div class="navbar-right">
-      <button class="dark-mode-toggle-btn" onclick="document.body.classList.toggle('dark-mode')" title="Toggle Dark Mode">
-        <span>🌙</span>
-        <span>Dark</span>
+      <!-- RBAC Switcher / Portal Switch -->
+      <div class="rbac-role-pill-group">
+        <button type="button" class="rbac-btn" onclick="window.location.href='field-officer.html'">Officer</button>
+        <button type="button" class="rbac-btn" onclick="window.location.href='supervisor.html'">Supervisor</button>
+        <button type="button" class="rbac-btn active">Admin</button>
+      </div>
+
+      <!-- Direct Link to Database Explorer -->
+      <button class="btn-start-inspection" style="padding:6px 12px; font-size:11px; background:var(--dark-card); border:1px solid var(--dark-border); color:var(--text-white);" onclick="showAdminTab('database')">
+        🗄️ Supabase DB Explorer
       </button>
 
       <div class="user-avatar-pill" style="cursor:default;">
-        <div class="user-avatar-circle" style="background:#7e22ce; color:#ffffff;">SC</div>
+        <div class="user-avatar-circle" style="background-color:var(--dark-card); color:var(--text-white);">SC</div>
         <span class="user-name-text">
           <span>Sarah Chen</span>
-          <span class="badge" style="background:#f3e8ff; color:#7e22ce; font-size:10px;">ADMIN</span>
+          <span class="badge rbac-admin" style="font-size:10px; margin-left:4px;">ADMIN</span>
         </span>
       </div>
 
-      <button class="btn-view-details" style="padding:6px 12px; font-size:11px; border-color:rgba(255,255,255,0.2); color:#cbd5e1;" onclick="window.authEngine.logout()">
-        Sign Out ⎋
+      <button class="btn-view-details" style="padding:6px 12px; font-size:11px;" onclick="window.authEngine.logout()">
+        Sign Out
       </button>
     </div>
   </header>
 
   <div class="app-layout">
-    <!-- ADMIN SIDEBAR -->
-    <aside class="sidebar">
-      <div>
-        <div class="sidebar-heading">ADMINISTRATION</div>
-        <ul class="sidebar-menu">
-          <li>
-            <button class="menu-item-btn active" onclick="showTab('dashboard')">
-              <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
-              <span>Admin Dashboard</span>
-            </button>
-          </li>
-          <li>
-            <button class="menu-item-btn" onclick="showTab('users')">
-              <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-              <span>User & Role Governance</span>
-            </button>
-          </li>
-          <li>
-            <button class="menu-item-btn" onclick="showTab('fleet')">
-              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-              <span>Fleet Hardware Keys</span>
-            </button>
-          </li>
-        </ul>
-      </div>
-      <div style="font-size: 11px; color: var(--text-light); text-align: center; padding-top: 10px; border-top: 1px solid var(--border-color);">
-        Level 1 Root Administrator
-      </div>
-    </aside>
 
     <!-- MAIN VIEW -->
     <main class="main-view-container">
 
-      <!-- TAB: ADMIN DASHBOARD (Exact match to ASCII layout in prompt) -->
-      <section id="tab-dashboard" class="app-screen active">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-          <div>
-            <h1 style="font-size:24px; font-weight:800; color:var(--text-main);">ADMIN DASHBOARD</h1>
-            <div style="font-size:13px; color:var(--text-muted);">Enterprise Node Metrics • Mojave Solar Array Operations</div>
+      <!-- TAB 1: OVERVIEW -->
+      <section id="tab-overview" class="app-screen active">
+
+        <!-- PPT SLIDE HERO BANNER -->
+        <div class="slide-hero-panel">
+          <div style="font-size:12px; font-weight:800; color:var(--text-muted-dark); letter-spacing:1px; margin-bottom:8px;">
+            SYSTEM GOVERNANCE • HACKGENIX 2026
           </div>
-          <button class="btn-start-inspection" onclick="exportCompliance()">
-            📥 Export Audit Compliance
-          </button>
+          <h1 class="hero-headline">ADMINISTRATOR FLEET CONSOLE</h1>
+          <div class="hero-subheadline">Cryptographic Key Governance • Device Health • RBAC Management</div>
         </div>
 
-        <!-- Metric Grid 1: Users, Field Officers, Supervisors -->
-        <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; margin-bottom:16px;">
+        <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; margin-bottom:24px;">
           <div class="admin-stat-card">
-            <span class="admin-stat-title">Users</span>
-            <div class="admin-stat-number" style="color:#0284c7;">24</div>
-            <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">Registered Platform Accounts</div>
+            <div class="admin-stat-title">Active Devices</div>
+            <div class="admin-stat-number">24</div>
           </div>
           <div class="admin-stat-card">
-            <span class="admin-stat-title">Field Officers</span>
-            <div class="admin-stat-number" style="color:#10b981;">18</div>
-            <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">Air-Gapped Mobile Terminals</div>
+            <div class="admin-stat-title">Verified Manifests</div>
+            <div class="admin-stat-number" id="adminStatManifests">128</div>
           </div>
           <div class="admin-stat-card">
-            <span class="admin-stat-title">Supervisors</span>
-            <div class="admin-stat-number" style="color:#f59e0b;">06</div>
-            <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">Command Dispatchers</div>
+            <div class="admin-stat-title">Zero-Loss Rate</div>
+            <div class="admin-stat-number" style="color:var(--olive-light);">100%</div>
           </div>
-        </div>
-
-        <!-- Metric Grid 2: Jobs, Synced, Conflicts -->
-        <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; margin-bottom:24px;">
-          <div class="admin-stat-card">
-            <span class="admin-stat-title">Jobs</span>
-            <div class="admin-stat-number" style="color:#6366f1;">128</div>
-            <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">Dispatched Sector Operations</div>
-          </div>
-          <div class="admin-stat-card">
-            <span class="admin-stat-title">Synced</span>
-            <div class="admin-stat-number" style="color:#16a34a;">117</div>
-            <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">SHA-256 Cloud Verified</div>
-          </div>
-          <div class="admin-stat-card">
-            <span class="admin-stat-title">Conflicts</span>
-            <div class="admin-stat-number" style="color:#dc2626;">03</div>
-            <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">Requires Supervisor Signature</div>
+          <div class="admin-stat-card" style="cursor:pointer;" onclick="showAdminTab('database')">
+            <div class="admin-stat-title">Supabase Database</div>
+            <div class="admin-stat-number" style="font-size:16px; font-weight:800; margin-top:6px; color:var(--olive-light);">● CONNECTED (View)</div>
           </div>
         </div>
 
-        <!-- SYSTEM ACTIVITY STREAM (Exact match to prompt) -->
         <div class="inner-card">
-          <h2 style="font-size:18px; margin-bottom:14px; text-transform:uppercase; letter-spacing:0.5px;">System Activity</h2>
-          <div class="activity-stream-box">
-            <div class="activity-row">
-              <div>
-                <strong>🟢 User created</strong>
-                <div style="font-size:12px; color:var(--text-muted);">Worker-04 (Arun Kumar) enrolled on Panasonic Toughbook G2</div>
-              </div>
-              <span style="font-size:12px; color:var(--text-muted);">09:30 AM</span>
-            </div>
-            <div class="activity-row">
-              <div>
-                <strong>⚡ Job assigned</strong>
-                <div style="font-size:12px; color:var(--text-muted);">OP-2026-0047 (Solar Panel Inverter Diagnostic) dispatched to Sector 7</div>
-              </div>
-              <span style="font-size:12px; color:var(--text-muted);">10:00 AM</span>
-            </div>
-            <div class="activity-row">
-              <div>
-                <strong>📦 Evidence synchronized</strong>
-                <div style="font-size:12px; color:var(--text-muted);">OP-2026-0041 verified against master root Merkle proof (SHA-256 Passed)</div>
-              </div>
-              <span style="font-size:12px; color:var(--text-muted);">10:15 AM</span>
-            </div>
-            <div class="activity-row">
-              <div>
-                <strong>⚠️ Conflict detected</strong>
-                <div style="font-size:12px; color:var(--text-muted);">OP-2026-0047 concurrent value divergence (72°C vs 68°C)</div>
-              </div>
-              <span style="font-size:12px; color:var(--text-muted);">11:15 AM</span>
-            </div>
-            <div class="activity-row">
-              <div>
-                <strong>🔒 Audit event generated</strong>
-                <div style="font-size:12px; color:var(--text-muted);">Resumable video transfer checkpoint (Chunk 7/10 - 13.2 MB) sealed</div>
-              </div>
-              <span style="font-size:12px; color:var(--text-muted);">11:32 AM</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- TAB: USERS -->
-      <section id="tab-users" class="app-screen">
-        <div class="inner-card">
-          <h2 style="font-size:20px; margin-bottom:14px;">User & Role Management</h2>
+          <h2 style="font-size:18px; font-weight:800; margin-bottom:14px;">Fleet Nodes & Air-Gapped Field Status</h2>
           <div class="table-wrap">
             <table class="data-table">
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Role</th>
-                  <th>Status</th>
+                  <th>Device ID</th>
+                  <th>Assigned Officer</th>
+                  <th>Hardware Model</th>
+                  <th>Local Storage</th>
+                  <th>Last Gateway Sync</th>
+                  <th>Integrity Key</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td><strong>Sarah Chen</strong></td>
-                  <td>admin@syncfield.demo</td>
-                  <td><span class="badge" style="background:#f3e8ff; color:#7e22ce;">ADMIN</span></td>
-                  <td><span class="badge badge-verified">ACTIVE</span></td>
+                  <td><strong>NODE-TOUGH-04</strong></td>
+                  <td>Arun Kumar (Worker-04)</td>
+                  <td>Panasonic Toughbook G2</td>
+                  <td>1.88 GB Free</td>
+                  <td><span class="badge badge-verified">SYNCED (0m ago)</span></td>
+                  <td><code>0x4A7B...99C2</code></td>
                 </tr>
                 <tr>
-                  <td><strong>Arun Kumar</strong></td>
-                  <td>field@syncfield.demo</td>
-                  <td><span class="badge" style="background:#e0f2fe; color:#0369a1;">FIELD_OFFICER</span></td>
-                  <td><span class="badge badge-verified">ACTIVE</span></td>
+                  <td><strong>NODE-TOUGH-02</strong></td>
+                  <td>Elena Gomez (Worker-02)</td>
+                  <td>Dell Latitude 7230 Rugged</td>
+                  <td>1.92 GB Free</td>
+                  <td><span class="badge badge-verified">SYNCED (14m ago)</span></td>
+                  <td><code>0x38F1...11A8</code></td>
                 </tr>
                 <tr>
-                  <td><strong>Marcus Brody</strong></td>
-                  <td>supervisor@syncfield.demo</td>
-                  <td><span class="badge" style="background:#fef3c7; color:#b45309;">SUPERVISOR</span></td>
-                  <td><span class="badge badge-verified">ACTIVE</span></td>
+                  <td><strong>NODE-TOUGH-01</strong></td>
+                  <td>Alex Rivera (Worker-01)</td>
+                  <td>Getac UX10-IP65</td>
+                  <td>1.75 GB Free</td>
+                  <td><span class="badge badge-queued">AIR-GAPPED (Sector 9)</span></td>
+                  <td><code>0x77E4...28F0</code></td>
                 </tr>
               </tbody>
             </table>
@@ -265,33 +209,97 @@
         </div>
       </section>
 
-      <!-- TAB: FLEET -->
+      <!-- TAB 2: FLEET SECURITY -->
       <section id="tab-fleet" class="app-screen">
         <div class="inner-card">
-          <h2 style="font-size:20px; margin-bottom:14px;">Hardware Terminal Fleet & Encryption Keys</h2>
+          <h2 style="font-size:22px; font-weight:800; margin-bottom:14px;">Cryptographic Key Governance</h2>
+          <div style="font-size:13px; color:var(--text-muted-light); margin-bottom:16px;">
+            All field units use asymmetric public-private key pairs stored inside hardware keystores to seal Merkle packages.
+          </div>
+          <button class="btn-start-inspection" onclick="alert('Master Compliance Report Generated!')">
+            Generate Compliance Audit Report
+          </button>
+        </div>
+      </section>
+
+      <!-- TAB 3: AUDIT -->
+      <section id="tab-audit" class="app-screen">
+        <div class="inner-card">
+          <h2 style="font-size:22px; font-weight:800; margin-bottom:16px;">System Master Audit Stream</h2>
           <div class="table-wrap">
-            <table class="data-table">
+            <table class="data-table" id="adminAuditTable">
               <thead>
                 <tr>
-                  <th>Device Identifier</th>
-                  <th>Assigned Officer</th>
-                  <th>Public Key Digest</th>
-                  <th>Vault Allocation</th>
+                  <th>Timestamp</th>
+                  <th>Action</th>
+                  <th>Description</th>
+                  <th>Operation Ref</th>
                 </tr>
               </thead>
-              <tbody>
-                <tr>
-                  <td>Panasonic Toughbook G2 (TB-04)</td>
-                  <td>Arun Kumar</td>
-                  <td><code>0x4F8A9E12...B345</code></td>
-                  <td>1.88 GB Free (Local Encrypted)</td>
-                </tr>
-                <tr>
-                  <td>Panasonic Toughbook G2 (TB-02)</td>
-                  <td>Elena Gomez</td>
-                  <td><code>0x7B9E36E5...8E01</code></td>
-                  <td>1.92 GB Free (Local Encrypted)</td>
-                </tr>
+              <tbody id="adminAuditTableBody">
+                <tr><td colspan="4" style="text-align:center;">Loading audit records...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: LIVE DATABASE EXPLORER (SUPABASE / POSTGRESQL VIEW) -->
+      <section id="tab-database" class="app-screen">
+        <div class="inner-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:12px;">
+            <div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <h2 style="font-size:22px; font-weight:900;">Supabase Database Explorer</h2>
+                <span class="badge badge-verified" style="font-size:11px;">● POSTGRESQL LIVE</span>
+              </div>
+              <div style="font-size:13px; color:var(--text-muted-light); margin-top:2px;">
+                Direct inspection of raw tables, inspection rows, Merkle hashes, conflicts, and cryptographic records.
+              </div>
+            </div>
+
+            <div style="display:flex; gap:10px;">
+              <button class="btn-view-details" style="padding:8px 14px; font-size:12px;" onclick="loadCurrentTable()">
+                🔄 Refresh Table
+              </button>
+            </div>
+          </div>
+
+          <!-- Table Selector Buttons -->
+          <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;" id="tableSelectorButtons">
+            <button class="btn-start-inspection active" id="btnTbl-syncfield_operations" style="padding:6px 14px; font-size:12px;" onclick="selectTable('syncfield_operations')">
+              📁 syncfield_operations <span class="badge badge-queued" id="cnt-syncfield_operations" style="margin-left:4px; font-size:10px;">-</span>
+            </button>
+            <button class="btn-view-details" id="btnTbl-syncfield_conflicts" style="padding:6px 14px; font-size:12px;" onclick="selectTable('syncfield_conflicts')">
+              ⚡ syncfield_conflicts <span class="badge badge-critical" id="cnt-syncfield_conflicts" style="margin-left:4px; font-size:10px;">-</span>
+            </button>
+            <button class="btn-view-details" id="btnTbl-syncfield_audit_logs" style="padding:6px 14px; font-size:12px;" onclick="selectTable('syncfield_audit_logs')">
+              📜 syncfield_audit_logs <span class="badge badge-queued" id="cnt-syncfield_audit_logs" style="margin-left:4px; font-size:10px;">-</span>
+            </button>
+            <button class="btn-view-details" id="btnTbl-jobs" style="padding:6px 14px; font-size:12px;" onclick="selectTable('jobs')">
+              📋 jobs <span class="badge badge-queued" id="cnt-jobs" style="margin-left:4px; font-size:10px;">-</span>
+            </button>
+            <button class="btn-view-details" id="btnTbl-devices" style="padding:6px 14px; font-size:12px;" onclick="selectTable('devices')">
+              💻 devices <span class="badge badge-queued" id="cnt-devices" style="margin-left:4px; font-size:10px;">3</span>
+            </button>
+          </div>
+
+          <!-- Search & Filter Filter Bar -->
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:12px;">
+            <input type="text" id="dbSearchInput" placeholder="Filter rows in current table (Operation ID, status, hash, worker)..." 
+                   style="flex:1; background-color:var(--dark-card); border:1px solid var(--dark-border); color:var(--text-white); padding:8px 14px; border-radius:var(--radius-md); font-size:13px;"
+                   oninput="filterDbTable()">
+            <span style="font-size:12px; color:var(--text-muted-light); font-weight:700;" id="dbRowCountLabel">0 rows</span>
+          </div>
+
+          <!-- Dynamic Raw Table Container -->
+          <div class="table-wrap" style="max-height:520px; overflow-y:auto;">
+            <table class="data-table" id="dbDynamicTable">
+              <thead id="dbDynamicTableHead">
+                <tr><th>Loading schema...</th></tr>
+              </thead>
+              <tbody id="dbDynamicTableBody">
+                <tr><td style="text-align:center; padding:30px;">Connecting to database...</td></tr>
               </tbody>
             </table>
           </div>
@@ -301,38 +309,292 @@
     </main>
   </div>
 
-  <div class="toast-box" id="appToastBox"><span id="toastMessageText">Action successful</span></div>
+  <!-- JSON INSPECTION MODAL -->
+  <div id="jsonModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:99999; align-items:center; justify-content:center; padding:20px;">
+    <div style="background-color:var(--dark-surface); border:1px solid var(--dark-border); border-radius:var(--radius-lg); width:100%; max-width:680px; max-height:85vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 16px 40px rgba(0,0,0,0.7);">
+      <div style="padding:16px 20px; border-bottom:1px solid var(--dark-border); display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="font-size:16px; font-weight:800; color:var(--text-white);" id="jsonModalTitle">Record Inspector</h3>
+        <button onclick="closeJsonModal()" style="background:none; border:none; color:var(--text-muted-light); font-size:20px; cursor:pointer;">✕</button>
+      </div>
+      <div style="padding:20px; overflow-y:auto; flex:1;">
+        <pre id="jsonModalContent" style="background-color:var(--dark-card); padding:16px; border-radius:var(--radius-md); font-family:'JetBrains Mono', monospace; font-size:12px; color:var(--olive-light); white-space:pre-wrap; word-break:break-all;"></pre>
+      </div>
+    </div>
+  </div>
+
+  <div id="appToastContainer"></div>
 
   <script src="js/auth.js"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      if (window.authEngine) {
-        window.authEngine.requireRole(['ADMIN']);
+    let activeTable = 'syncfield_operations';
+    let cachedTableRows = [];
+
+    function toggleAdminMenu(e) {
+      if (e) {
+        e.stopPropagation();
+        e.preventDefault();
+      }
+      const trigger = document.getElementById('brandMenuTrigger');
+      const menu = document.getElementById('brandDropdownMenu');
+      if (!menu) return;
+      const isVisible = menu.classList.contains('show');
+      if (isVisible) {
+        closeAdminMenu();
+      } else {
+        menu.classList.add('show');
+        if (trigger) trigger.classList.add('menu-open');
+      }
+    }
+
+    function closeAdminMenu() {
+      const trigger = document.getElementById('brandMenuTrigger');
+      const menu = document.getElementById('brandDropdownMenu');
+      if (menu) menu.classList.remove('show');
+      if (trigger) trigger.classList.remove('menu-open');
+    }
+
+    document.addEventListener('click', (e) => {
+      const trigger = document.getElementById('brandMenuTrigger');
+      const menu = document.getElementById('brandDropdownMenu');
+      if (menu && menu.classList.contains('show')) {
+        if (!trigger || !trigger.contains(e.target)) {
+          closeAdminMenu();
+        }
       }
     });
 
-    function showTab(tabId) {
-      document.querySelectorAll('.app-screen').forEach(el => el.classList.remove('active'));
-      const target = document.getElementById(`tab-${tabId}`);
-      if (target) target.classList.add('active');
+    function showAdminTab(tabId) {
+      closeAdminMenu();
+      document.querySelectorAll('.app-screen').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.menu-item-btn').forEach(b => b.classList.remove('active'));
+      
+      const screen = document.getElementById(`tab-${tabId}`);
+      if (screen) screen.classList.add('active');
 
-      document.querySelectorAll('.sidebar-menu button').forEach(btn => btn.classList.remove('active'));
-      event?.currentTarget?.classList?.add('active');
+      const btnMap = {
+        overview: 'btnTabOverview',
+        fleet: 'btnTabFleet',
+        audit: 'btnTabAudit',
+        database: 'btnTabDatabase'
+      };
+      const activeBtn = document.getElementById(btnMap[tabId]);
+      if (activeBtn) activeBtn.classList.add('active');
+
+      if (tabId === 'audit') loadAdminAuditLogs();
+      if (tabId === 'database') loadAdminDatabaseExplorer();
     }
 
-    function exportCompliance() {
-      showToast('📥 Cryptographic Audit & Compliance Report generated and exported.', 'success');
+    async function loadAdminAuditLogs() {
+      const tbody = document.getElementById('adminAuditTableBody');
+      if (!tbody) return;
+      try {
+        const res = await fetch('http://localhost:8000/api/audit/recent');
+        if (res.ok) {
+          const json = await res.json();
+          const logs = json.data || [];
+          if (logs.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No audit logs yet.</td></tr>';
+            return;
+          }
+          tbody.innerHTML = logs.map(l => `
+            <tr>
+              <td>${l.timestamp ? new Date(l.timestamp).toLocaleTimeString() : 'Recent'}</td>
+              <td><span class="badge ${l.action.includes('RESOLVED') ? 'badge-verified' : l.action.includes('CONFLICT') ? 'badge-critical' : 'badge-queued'}">${l.action}</span></td>
+              <td>${l.description}</td>
+              <td><strong>${l.operationId || 'SYSTEM'}</strong></td>
+            </tr>
+          `).join('');
+        }
+      } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#ea580c;">Failed loading audit logs.</td></tr>';
+      }
     }
 
-    function showToast(message, type = 'info') {
-      const toast = document.getElementById('appToastBox');
-      const text = document.getElementById('toastMessageText');
-      if (!toast || !text) return;
-      text.textContent = message;
-      toast.style.display = 'flex';
-      toast.style.background = type === 'success' ? '#16a34a' : '#0d234a';
-      setTimeout(() => { toast.style.display = 'none'; }, 3500);
+    async function loadAdminDatabaseExplorer() {
+      await refreshTableCounts();
+      await selectTable(activeTable);
     }
+
+    async function refreshTableCounts() {
+      try {
+        const res = await fetch('http://localhost:8000/api/admin/database/tables');
+        if (res.ok) {
+          const json = await res.json();
+          const tables = json.data || [];
+          for (const t of tables) {
+            const countBadge = document.getElementById(`cnt-${t.name}`);
+            if (countBadge) countBadge.textContent = t.count;
+          }
+        }
+      } catch (e) {}
+    }
+
+    async function selectTable(tableName) {
+      activeTable = tableName;
+      
+      // Update button styling
+      const buttons = document.querySelectorAll('#tableSelectorButtons button');
+      buttons.forEach(b => {
+        b.className = 'btn-view-details';
+      });
+      const activeBtn = document.getElementById(`btnTbl-${tableName}`);
+      if (activeBtn) activeBtn.className = 'btn-start-inspection active';
+
+      await loadCurrentTable();
+    }
+
+    let currentDisplayedRows = [];
+
+    async function loadCurrentTable() {
+      const thead = document.getElementById('dbDynamicTableHead');
+      const tbody = document.getElementById('dbDynamicTableBody');
+      const rowCountLabel = document.getElementById('dbRowCountLabel');
+      
+      tbody.innerHTML = '<tr><td colspan="12" style="text-align:center; padding:24px; color:var(--text-muted-light);">Fetching records from Supabase / PostgreSQL database...</td></tr>';
+      
+      try {
+        const res = await fetch(`http://localhost:8000/api/admin/database/table/${activeTable}`);
+        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+        
+        const json = await res.json();
+        const data = json.data || { columns: [], rows: [] };
+        const cols = data.columns || [];
+        const rows = data.rows || [];
+        cachedTableRows = rows;
+        currentDisplayedRows = rows;
+
+        if (rowCountLabel) rowCountLabel.textContent = `${rows.length} rows`;
+
+        if (cols.length === 0 || rows.length === 0) {
+          thead.innerHTML = '<tr><th>Table</th><th>Status</th></tr>';
+          tbody.innerHTML = `<tr><td><strong>${activeTable}</strong></td><td><em>No records found in this table yet.</em></td></tr>`;
+          return;
+        }
+
+        // Render Table Headers
+        thead.innerHTML = `<tr>${cols.map(c => `<th>${formatColName(c)}</th>`).join('')}<th>INSPECT</th></tr>`;
+
+        renderTableBody(rows, cols);
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="12" style="text-align:center; padding:20px; color:#ef4444;">Error accessing table ${activeTable}: ${e.message}</td></tr>`;
+      }
+    }
+
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function renderTableBody(rows, cols) {
+      const tbody = document.getElementById('dbDynamicTableBody');
+      if (!tbody) return;
+
+      currentDisplayedRows = rows;
+
+      if (!rows || rows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="${cols.length + 1}" style="text-align:center; padding:24px; color:var(--text-muted-light);">No matching rows found in ${activeTable}.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = rows.map((row, idx) => {
+        const cells = cols.map(c => {
+          let val = row[c];
+          
+          if (val === null || val === undefined) {
+            return '<td><span style="color:var(--text-muted-dark); font-weight:700;">null</span></td>';
+          }
+          
+          if (typeof val === 'object') {
+            val = JSON.stringify(val);
+          }
+
+          const strVal = String(val);
+
+          if (c.toLowerCase().includes('status')) {
+            const isV = strVal === 'VERIFIED' || strVal === 'RESOLVED' || strVal === 'SYNCED';
+            const isC = strVal === 'CONFLICT' || strVal === 'UNRESOLVED' || strVal === 'CRITICAL';
+            return `<td><span class="badge ${isV ? 'badge-verified' : isC ? 'badge-critical' : 'badge-queued'}">${escapeHtml(strVal)}</span></td>`;
+          }
+
+          if (c.toLowerCase().includes('hash') || c.toLowerCase().includes('id') || c.toLowerCase().includes('key')) {
+            const shortVal = strVal.length > 20 ? strVal.substring(0, 16) + '...' : strVal;
+            return `<td><code>${escapeHtml(shortVal)}</code></td>`;
+          }
+
+          if (strVal.startsWith('{') || strVal.startsWith('[')) {
+            const shortJson = strVal.length > 35 ? strVal.substring(0, 32) + '...' : strVal;
+            return `<td><code style="color:var(--olive-light);">${escapeHtml(shortJson)}</code></td>`;
+          }
+
+          const displayVal = strVal.length > 38 ? strVal.substring(0, 35) + '...' : strVal;
+          return `<td>${escapeHtml(displayVal)}</td>`;
+        }).join('');
+
+        return `
+          <tr>
+            ${cells}
+            <td>
+              <button class="btn-view-details" style="padding:4px 10px; font-size:11px; cursor:pointer;" onclick="viewJsonDetail(${idx})">
+                🔍 JSON
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function filterDbTable() {
+      const query = (document.getElementById('dbSearchInput')?.value || '').trim().toLowerCase();
+      if (!cachedTableRows || cachedTableRows.length === 0) return;
+      
+      const cols = Object.keys(cachedTableRows[0] || {});
+      const filtered = cachedTableRows.filter(row => {
+        if (!query) return true;
+        return Object.values(row).some(v => String(v || '').toLowerCase().includes(query));
+      });
+
+      const rowCountLabel = document.getElementById('dbRowCountLabel');
+      if (rowCountLabel) rowCountLabel.textContent = `${filtered.length} of ${cachedTableRows.length} rows`;
+      
+      renderTableBody(filtered, cols);
+    }
+
+    function formatColName(str) {
+      if (!str) return '';
+      return str.replace(/_/g, ' ').toUpperCase();
+    }
+
+    function viewJsonDetail(rowIdx) {
+      try {
+        const row = currentDisplayedRows[rowIdx];
+        if (!row) return;
+        const json = JSON.stringify(row, null, 2);
+        const modal = document.getElementById('jsonModal');
+        const content = document.getElementById('jsonModalContent');
+        const title = document.getElementById('jsonModalTitle');
+        if (title) title.textContent = `Record Inspector: ${row.id || row.operation_id || row.operationId || activeTable + ' #' + (rowIdx + 1)}`;
+        if (content) content.textContent = json;
+        if (modal) modal.style.display = 'flex';
+      } catch (e) {
+        console.warn('Modal open error:', e);
+      }
+    }
+
+    function closeJsonModal() {
+      const modal = document.getElementById('jsonModal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadAdminAuditLogs();
+      refreshTableCounts();
+      selectTable('syncfield_operations');
+    });
   </script>
 </body>
 </html>

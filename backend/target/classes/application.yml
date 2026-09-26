@@ -7,7 +7,7 @@ spring:
   application:
     name: syncfield-backend
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE:dev}
+    active: ${SPRING_PROFILES_ACTIVE:prod}
   servlet:
     multipart:
       max-file-size: 100MB
@@ -19,7 +19,7 @@ syncfield:
     expiration-ms: 86400000 # 24 hours
   storage:
     local-dir: ${STORAGE_LOCAL_DIR:./storage-uploads}
-    supabase-url: ${SUPABASE_URL:}
+    supabase-url: ${SUPABASE_URL:https://bdahyquskpiiapwttsvw.supabase.co}
     supabase-key: ${SUPABASE_SERVICE_KEY:}
     bucket-name: ${SUPABASE_STORAGE_BUCKET:evidence-vault}
 
@@ -48,12 +48,18 @@ spring:
     activate:
       on-profile: prod
   datasource:
-    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/syncfield}
+    url: ${DATABASE_URL:jdbc:postgresql://aws-0-ap-south-1.pooler.supabase.com:5432/postgres?sslmode=require}
     driverClassName: org.postgresql.Driver
-    username: ${DATABASE_USERNAME:postgres}
-    password: ${DATABASE_PASSWORD:postgres}
+    username: ${DATABASE_USERNAME:postgres.bdahyquskpiiapwttsvw}
+    password: ${DATABASE_PASSWORD:Kamesh2006.0}
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: update
     show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          lob:
+            non_contextual_creation: true

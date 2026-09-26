@@ -136,7 +136,7 @@ class AuthEngine {
     });
 
     if (!hasAccess) {
-      alert(`⛔ RBAC ACCESS DENIED: Your role (${userRole}) does not have permission to view this dashboard.`);
+      alert(`[ACCESS RESTRICTED] RBAC Permission Check: Your role (${userRole}) does not have permission to view this dashboard.`);
       this.redirectToDashboard();
       return false;
     }
