@@ -328,12 +328,14 @@
       }
     });
 
+    const API_BASE = window.API_BASE_URL || localStorage.getItem('SYNCFIELD_API_URL') || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:8000/api' : 'https://hackgenix.onrender.com/api');
+
     async function loadConflicts() {
       const container = document.getElementById('conflictsListContainer');
       if (!container) return;
       
       try {
-        const res = await fetch('http://localhost:8000/api/conflicts');
+        const res = await fetch(`${API_BASE}/conflicts`);
         let conflicts = [];
         if (res.ok) {
           const json = await res.json();
@@ -425,7 +427,7 @@
         const randPanel = Math.floor(Math.random() * 80) + 1;
         const opId = `OP-2026-00${randPanel.toString().padStart(2, '0')}`;
         
-        const res = await fetch('http://localhost:8000/api/conflicts/simulate', {
+        const res = await fetch(`${API_BASE}/conflicts/simulate`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -453,7 +455,7 @@
 
     async function resolveConflictChoice(conflictId, code, label) {
       try {
-        const res = await fetch(`http://localhost:8000/api/conflicts/${conflictId}/resolve`, {
+        const res = await fetch(`${API_BASE}/conflicts/${conflictId}/resolve`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ resolution: code })
@@ -500,7 +502,7 @@
       const container = document.getElementById('auditTrailContainer');
       if (!container) return;
       try {
-        const res = await fetch('http://localhost:8000/api/audit/recent');
+        const res = await fetch(`${API_BASE}/audit/recent`);
         if (res.ok) {
           const json = await res.json();
           const logs = json.data || [];
@@ -524,7 +526,7 @@
 
     async function loadSupervisorStats() {
       try {
-        const res = await fetch('http://localhost:8000/api/dashboard');
+        const res = await fetch(`${API_BASE}/dashboard`);
         if (res.ok) {
           const json = await res.json();
           const d = json.data;

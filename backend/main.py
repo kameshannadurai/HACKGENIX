@@ -297,6 +297,17 @@ class ResolveConflictRequest(BaseModel):
     mergedData: Optional[str] = None
 
 # Routes
+@app.get("/")
+@app.get("/health")
+def root_status():
+    return {
+        "status": "UP",
+        "service": "SyncField Sentinel API",
+        "engine": "Zero-Loss Evidence Continuity Engine",
+        "docs": "/docs",
+        "database": "Supabase PostgreSQL"
+    }
+
 @app.get("/api/health")
 def health():
     conn = get_db_connection()

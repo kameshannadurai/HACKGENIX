@@ -7,10 +7,20 @@
  */
 
 let BACKEND_PORT = 8000;
-let API_BASE = "http://127.0.0.1:8000/api";
-let CLOUD_API_URL = "http://127.0.0.1:8000/api/operations";
+let API_BASE = window.API_BASE_URL || localStorage.getItem('SYNCFIELD_API_URL') || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://127.0.0.1:8000/api' : 'https://hackgenix.onrender.com/api');
+let CLOUD_API_URL = `${API_BASE}/operations`;
 
 async function getBackendApiUrl(endpoint) {
+  if (window.API_BASE_URL) {
+    return `${window.API_BASE_URL.replace(/\/$/, '')}${endpoint}`;
+  }
+  const customUrl = localStorage.getItem('SYNCFIELD_API_URL');
+  if (customUrl) {
+    return `${customUrl.replace(/\/$/, '')}${endpoint}`;
+  }
+  if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    return `https://hackgenix.onrender.com/api${endpoint}`;
+  }
   const ports = [BACKEND_PORT, 8000, 8001];
   for (const p of ports) {
     try {
